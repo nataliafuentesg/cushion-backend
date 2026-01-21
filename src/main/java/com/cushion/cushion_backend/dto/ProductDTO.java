@@ -12,7 +12,7 @@ public class ProductDTO {
     private String description;
     private Double price;
     private String category;
-    private boolean isFeatured;
+    private boolean featured;
     private Integer stock;
     private String gemstoneType;
     private String cutType;

@@ -1,17 +1,27 @@
 package com.cushion.cushion_backend.service;
 
+import com.cushion.cushion_backend.dto.CartDTO;
+import com.cushion.cushion_backend.dto.CartItemDTO;
 import com.cushion.cushion_backend.model.Cart;
+import com.cushion.cushion_backend.model.CartItem;
 import com.cushion.cushion_backend.model.Client;
+import com.cushion.cushion_backend.model.Product;
 import com.cushion.cushion_backend.repository.CartRepository;
 import com.cushion.cushion_backend.repository.ClientRepository;
+import com.cushion.cushion_backend.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class CartService {
 
     @Autowired private CartRepository cartRepository;
+    @Autowired private ProductRepository productRepository;
     @Autowired private ClientRepository clientRepository;
 
     @Transactional
@@ -20,17 +30,96 @@ public class CartService {
                 .orElseThrow(() -> new RuntimeException("Cliente no encontrado"));
 
         cartRepository.findBySessionId(sessionId).ifPresent(guestCart -> {
-            Cart clientCart = cartRepository.findByClientId(client.getId()).orElse(new Cart());
+            // Buscar si el cliente ya tiene un carrito, si no, crear uno nuevo
+            Cart clientCart = cartRepository.findByClientId(client.getId())
+                    .orElseGet(() -> {
+                        Cart newCart = new Cart();
+                        newCart.setClient(client);
+                        return newCart;
+                    });
 
-            guestCart.getItems().forEach(item -> {
-                item.setCart(clientCart);
-                clientCart.getItems().add(item);
-            });
+            // Pasar los items del carrito de invitado al de cliente
+            for (CartItem guestItem : guestCart.getItems()) {
+                // Verificar si el producto ya existe en el carrito del cliente para sumar cantidades
+                Optional<CartItem> existingItem = clientCart.getItems().stream()
+                        .filter(item -> item.getProduct().getId().equals(guestItem.getProduct().getId()))
+                        .findFirst();
 
-            clientCart.setClient(client);
-            clientCart.setSessionId(null);
+                if (existingItem.isPresent()) {
+                    existingItem.get().setQuantity(existingItem.get().getQuantity() + guestItem.getQuantity());
+                } else {
+                    guestItem.setCart(clientCart);
+                    clientCart.getItems().add(guestItem);
+                }
+            }
+
+            clientCart.setSessionId(null); // El carrito ya no es de sesión, es de cliente
             cartRepository.save(clientCart);
+
+            // Borramos el carrito temporal de invitado
+            guestCart.getItems().clear();
             cartRepository.delete(guestCart);
         });
+    }
+
+    @Transactional
+    public CartDTO addItemToCart(String sessionId, CartItemDTO itemDTO) {
+        // Buscar o crear el carrito
+        Cart cart = cartRepository.findBySessionId(sessionId).orElseGet(() -> {
+            Cart newCart = new Cart();
+            newCart.setSessionId(sessionId);
+            return cartRepository.save(newCart);
+        });
+
+        Product product = productRepository.findById(itemDTO.getProductId())
+                .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+
+        // Verificar si el producto ya está en el carrito
+        Optional<CartItem> existingItem = cart.getItems().stream()
+                .filter(item -> item.getProduct().getId().equals(product.getId()))
+                .findFirst();
+
+        if (existingItem.isPresent()) {
+            existingItem.get().setQuantity(existingItem.get().getQuantity() + itemDTO.getQuantity());
+        } else {
+            CartItem newItem = new CartItem();
+            newItem.setProduct(product);
+            newItem.setQuantity(itemDTO.getQuantity());
+            newItem.setCart(cart);
+            cart.getItems().add(newItem);
+        }
+
+        Cart savedCart = cartRepository.save(cart);
+        return convertToDTO(savedCart);
+    }
+
+    @Transactional(readOnly = true)
+    public CartDTO getCartBySession(String sessionId) {
+        Cart cart = cartRepository.findBySessionId(sessionId).orElse(new Cart());
+        return convertToDTO(cart);
+    }
+
+    private CartDTO convertToDTO(Cart cart) {
+        CartDTO dto = new CartDTO();
+        List<CartItemDTO> itemDTOs = cart.getItems().stream().map(item -> {
+            CartItemDTO iDto = new CartItemDTO();
+            iDto.setProductId(item.getProduct().getId());
+            iDto.setProductName(item.getProduct().getName());
+            iDto.setQuantity(item.getQuantity());
+            iDto.setPrice(item.getProduct().getPrice());
+            return iDto;
+        }).collect(Collectors.toList());
+
+        dto.setItems(itemDTOs);
+        dto.setTotal(itemDTOs.stream().mapToDouble(i -> i.getPrice() * i.getQuantity()).sum());
+        return dto;
+    }
+
+    @Transactional
+    public void clearCart(String sessionId) {
+        Cart cart = cartRepository.findBySessionId(sessionId)
+                .orElseThrow(() -> new RuntimeException("Carrito no encontrado"));
+        cart.getItems().clear();
+        cartRepository.save(cart);
     }
 }

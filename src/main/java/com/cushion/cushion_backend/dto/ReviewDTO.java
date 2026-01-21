@@ -11,4 +11,5 @@ public class ReviewDTO {
     private int rating;
     private String comment;
     private LocalDate date;
+    private String subtitleVerification;
 }

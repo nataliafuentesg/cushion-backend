@@ -28,7 +28,7 @@ public class Product {
     private String category; // Anillos, Collares, etc.
 
     private Integer stock;
-    private boolean isFeatured;
+    private boolean featured;
 
     private String gemstoneType;
     private String cutType;
@@ -39,8 +39,16 @@ public class Product {
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ProductImage> images = new ArrayList<>();
 
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Review> reviews = new ArrayList<>();
+
     public void addImage(ProductImage image) {
         images.add(image);
         image.setProduct(this);
+    }
+
+    public void addReview(Review review) {
+        reviews.add(review);
+        review.setProduct(this);
     }
 }
