@@ -1,5 +1,6 @@
 package com.cushion.cushion_backend.model;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDateTime;
@@ -33,6 +34,7 @@ public class Order {
     private Client client;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
     private List<OrderItem> items = new ArrayList<>();
 
     @PrePersist

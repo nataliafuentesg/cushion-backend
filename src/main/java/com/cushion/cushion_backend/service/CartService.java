@@ -64,31 +64,39 @@ public class CartService {
 
     @Transactional
     public CartDTO addItemToCart(String sessionId, CartItemDTO itemDTO) {
-        // Buscar o crear el carrito
         Cart cart = cartRepository.findBySessionId(sessionId).orElseGet(() -> {
             Cart newCart = new Cart();
             newCart.setSessionId(sessionId);
             return cartRepository.save(newCart);
         });
-
         Product product = productRepository.findById(itemDTO.getProductId())
                 .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
-
-        // Verificar si el producto ya está en el carrito
         Optional<CartItem> existingItem = cart.getItems().stream()
                 .filter(item -> item.getProduct().getId().equals(product.getId()))
                 .findFirst();
 
-        if (existingItem.isPresent()) {
-            existingItem.get().setQuantity(existingItem.get().getQuantity() + itemDTO.getQuantity());
-        } else {
-            CartItem newItem = new CartItem();
-            newItem.setProduct(product);
-            newItem.setQuantity(itemDTO.getQuantity());
-            newItem.setCart(cart);
-            cart.getItems().add(newItem);
+        int currentQtyInCart = existingItem.map(CartItem::getQuantity).orElse(0);
+        int newTotalQty = currentQtyInCart + itemDTO.getQuantity();
+        if (newTotalQty <= 0) {
+            existingItem.ifPresent(item -> {
+                cart.getItems().remove(item);
+                item.setCart(null);
+            });
         }
-
+        else if (newTotalQty > product.getStock()) {
+            throw new RuntimeException("Solo quedan " + product.getStock() + " unidades disponibles de esta pieza.");
+        }
+        else {
+            if (existingItem.isPresent()) {
+                existingItem.get().setQuantity(newTotalQty);
+            } else {
+                CartItem newItem = new CartItem();
+                newItem.setProduct(product);
+                newItem.setQuantity(newTotalQty);
+                newItem.setCart(cart);
+                cart.getItems().add(newItem);
+            }
+        }
         Cart savedCart = cartRepository.save(cart);
         return convertToDTO(savedCart);
     }
@@ -107,6 +115,11 @@ public class CartService {
             iDto.setProductName(item.getProduct().getName());
             iDto.setQuantity(item.getQuantity());
             iDto.setPrice(item.getProduct().getPrice());
+            iDto.setStock(item.getProduct().getStock());
+
+            if (!item.getProduct().getImages().isEmpty()) {
+                iDto.setImageUrl(item.getProduct().getImages().get(0).getImageUrl());
+            }
             return iDto;
         }).collect(Collectors.toList());
 

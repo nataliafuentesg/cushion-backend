@@ -1,4 +1,5 @@
 package com.cushion.cushion_backend.model;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -16,8 +17,9 @@ public class OrderItem {
 
     @ManyToOne
     @JoinColumn(name = "order_id")
+    @JsonBackReference
     private Order order;
 
     private Integer quantity;
-    private Double priceAtPurchase; // Precio histórico al momento de la compra
+    private Double priceAtPurchase;
 }
