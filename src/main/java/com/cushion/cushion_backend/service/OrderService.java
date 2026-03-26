@@ -52,6 +52,10 @@ public class OrderService {
         }
         double shippingFee = 25000.0;
         order.setTotalAmount(subtotal + shippingFee);
+        if (cart.getClient() != null) {
+            order.setClient(cart.getClient());
+        }
+
         Order savedOrder = orderRepository.save(order);
         cart.getItems().clear();
         cartRepository.save(cart);

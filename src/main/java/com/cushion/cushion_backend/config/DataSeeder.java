@@ -11,6 +11,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import com.cushion.cushion_backend.model.Client;
+import com.cushion.cushion_backend.repository.ClientRepository;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 @Component
 public class DataSeeder implements CommandLineRunner {
@@ -18,9 +21,25 @@ public class DataSeeder implements CommandLineRunner {
     @Autowired
     private ProductRepository productRepository;
 
+    @Autowired
+    private ClientRepository clientRepository;
+
     @Override
     @Transactional
     public void run(String... args) throws Exception {
+
+        if (clientRepository.findByEmail("admin@cushion.com").isEmpty()) {
+            Client admin = new Client();
+            admin.setEmail("admin@cushion.com");
+            // Encriptamos la clave directamente para que coincida con el sistema
+            admin.setPassword(new BCryptPasswordEncoder().encode("CushionAdmin2026"));
+            admin.setFirstName("Luis Carlos"); // O tu nombre
+            admin.setLastName("Admin");
+            admin.setRole("ADMIN");
+            clientRepository.save(admin);
+            System.out.println("Usuario Administrador creado con éxito.");
+        }
+
         if (productRepository.count() > 0) return;
 
         List<Product> products = new ArrayList<>();

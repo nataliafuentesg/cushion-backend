@@ -18,6 +18,8 @@ public class Client {
 
     private String firstName;
     private String lastName;
+    private String role = "USER";
+
     private String phone;
 
     @OneToOne(mappedBy = "client", cascade = CascadeType.ALL)
