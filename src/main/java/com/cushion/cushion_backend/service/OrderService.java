@@ -13,6 +13,7 @@ public class OrderService {
     @Autowired private OrderRepository orderRepository;
     @Autowired private CartRepository cartRepository;
     @Autowired private ProductRepository productRepository;
+    @Autowired private ClientRepository clientRepository;
 
     @Transactional
     public Order createOrderFromCart(OrderRequestDTO dto, String sessionId) {
@@ -53,6 +54,13 @@ public class OrderService {
         double shippingFee = 25000.0;
         order.setTotalAmount(subtotal + shippingFee);
         if (cart.getClient() != null) {
+            order.setClient(cart.getClient());
+        }
+
+        if (dto.getClientId() != null) {
+            Client client = clientRepository.findById(dto.getClientId()).orElse(null);
+            order.setClient(client);
+        } else if (cart.getClient() != null) {
             order.setClient(cart.getClient());
         }
 
