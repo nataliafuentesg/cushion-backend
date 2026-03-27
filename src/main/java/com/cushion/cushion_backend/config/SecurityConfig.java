@@ -27,18 +27,16 @@ public class SecurityConfig {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
-                // NUEVO: Le decimos que NO guarde sesiones en memoria, usaremos solo Tokens
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/api/clients/login", "/api/clients/register").permitAll()
-                        .requestMatchers("/api/products", "/api/products/**").permitAll() // <--- EL ARREGLO ESTÁ AQUÍ
-                        .requestMatchers("/api/cart", "/api/cart/**").permitAll() // <--- Y AQUÍ POR PREVENCIÓN
-                        .requestMatchers("/api/orders/create").permitAll()
+                        .requestMatchers("/api/clients/login", "/api/clients/register", "/api/clients/forgot-password").permitAll() // <--- ESTA ES LA CLAVE
+                        .requestMatchers("/api/clients/reset-password").permitAll() // <--- AGREGA ESTA TAMBIÉN DE UNA VEZ
+                        .requestMatchers("/api/products", "/api/products/**").permitAll()
+                        .requestMatchers("/api/cart", "/api/cart/**").permitAll()
                         .requestMatchers("/api/contact").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
