@@ -36,4 +36,19 @@ public class ClientController {
     public ResponseEntity<ClientDTO> register(@RequestBody Client client) {
         return ResponseEntity.ok(clientService.registerClient(client));
     }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody java.util.Map<String, String> request) {
+        String email = request.get("email");
+        clientService.createPasswordResetToken(email);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody java.util.Map<String, String> request) {
+        String token = request.get("token");
+        String newPassword = request.get("password");
+        clientService.updatePassword(token, newPassword);
+        return ResponseEntity.ok().build();
+    }
 }
