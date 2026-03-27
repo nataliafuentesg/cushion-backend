@@ -57,13 +57,13 @@ public class AdminController {
                     existingProduct.setStock(productDetails.getStock());
                     existingProduct.setFeatured(productDetails.isFeatured());
 
-                    // Especificaciones de Alta Joyería
+                    // Especificaciones de Alta Joyería (Nombres corregidos)
                     existingProduct.setGemstoneType(productDetails.getGemstoneType());
-                    existingProduct.setCarats(productDetails.getCarats());
                     existingProduct.setCutType(productDetails.getCutType());
-                    existingProduct.setClarity(productDetails.getClarity());
+                    existingProduct.setCaratWeight(productDetails.getCaratWeight()); // Corregido: antes decía carats
                     existingProduct.setMetalType(productDetails.getMetalType());
-                    existingProduct.setWeightGrams(productDetails.getWeightGrams());
+                    existingProduct.setClarity(productDetails.getClarity());
+                    // Se eliminó weightGrams porque no existe en tu @Entity
 
                     // Actualización de Imágenes (Reemplazo total)
                     existingProduct.getImages().clear();
