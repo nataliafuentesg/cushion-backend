@@ -14,6 +14,7 @@ public class OrderService {
     @Autowired private CartRepository cartRepository;
     @Autowired private ProductRepository productRepository;
     @Autowired private ClientRepository clientRepository;
+    @Autowired private TelegramService telegramService;
 
     @Transactional
     public Order createOrderFromCart(OrderRequestDTO dto, String sessionId) {
@@ -67,6 +68,17 @@ public class OrderService {
         Order savedOrder = orderRepository.save(order);
         cart.getItems().clear();
         cartRepository.save(cart);
+
+        try {
+            String mensaje = "🚨 <b>¡NUEVA VENTA CUSHION!</b> 🚨\n\n" +
+                    "<b>Pedido:</b> #" + savedOrder.getOrderNumber() + "\n" +
+                    "<b>Cliente:</b> " + savedOrder.getCustomerName() + "\n" +
+                    "<b>Valor:</b> $" + String.format("%,.0f", savedOrder.getTotalAmount()) + "\n\n" +
+                    "Revisa el panel de administración para ver detalles de envío.";
+            telegramService.sendNotification(mensaje);
+        } catch (Exception e) {
+            System.err.println("No se pudo enviar la alerta de Telegram: " + e.getMessage());
+        }
 
         return savedOrder;
     }
