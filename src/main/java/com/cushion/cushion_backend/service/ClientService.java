@@ -54,6 +54,7 @@ public class ClientService {
         dto.setFirstName(client.getFirstName());
         dto.setLastName(client.getLastName());
         dto.setPhone(client.getPhone());
+        dto.setRole(client.getRole());
         return dto;
     }
 }

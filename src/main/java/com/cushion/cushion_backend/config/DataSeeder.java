@@ -33,7 +33,7 @@ public class DataSeeder implements CommandLineRunner {
             admin.setEmail("admin@cushion.com");
             // Encriptamos la clave directamente para que coincida con el sistema
             admin.setPassword(new BCryptPasswordEncoder().encode("CushionAdmin2026"));
-            admin.setFirstName("Luis Carlos"); // O tu nombre
+            admin.setFirstName("Admin"); // O tu nombre
             admin.setLastName("Admin");
             admin.setRole("ADMIN");
             clientRepository.save(admin);
