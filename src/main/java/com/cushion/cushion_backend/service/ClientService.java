@@ -3,7 +3,9 @@ import com.cushion.cushion_backend.dto.ClientDTO;
 import com.cushion.cushion_backend.model.Cart;
 import com.cushion.cushion_backend.model.Client;
 import com.cushion.cushion_backend.repository.ClientRepository;
+import com.cushion.cushion_backend.security.JwtService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,6 +15,8 @@ public class ClientService {
 
     @Autowired
     private ClientRepository clientRepository;
+    @Autowired private JwtService jwtService; // NUEVO
+    @Autowired private CustomUserDetailsService userDetailsService;
 
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
@@ -34,8 +38,14 @@ public class ClientService {
         cart.setClient(client);
         client.setCart(cart);
 
-        // Ahora save(client) funcionará porque el repositorio es de tipo Client
-        return convertToDTO(clientRepository.save(client));
+        Client savedClient = clientRepository.save(client);
+
+        UserDetails userDetails = userDetailsService.loadUserByUsername(savedClient.getEmail());
+        String token = jwtService.generateToken(userDetails);
+
+        ClientDTO dto = convertToDTO(savedClient);
+        dto.setToken(token);
+        return dto;
     }
 
     public ClientDTO authenticate(String email, String rawPassword) {
@@ -44,7 +54,13 @@ public class ClientService {
         if (!passwordEncoder.matches(rawPassword, client.getPassword())) {
             throw new RuntimeException("Contraseña incorrecta");
         }
-        return convertToDTO(client);
+
+        UserDetails userDetails = userDetailsService.loadUserByUsername(client.getEmail());
+        String token = jwtService.generateToken(userDetails);
+
+        ClientDTO dto = convertToDTO(client);
+        dto.setToken(token); // Se lo adjuntamos a la respuesta
+        return dto;
     }
 
     private ClientDTO convertToDTO(Client client) {
