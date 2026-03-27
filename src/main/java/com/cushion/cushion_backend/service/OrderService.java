@@ -53,6 +53,11 @@ public class OrderService {
             subtotal += product.getPrice() * cartItem.getQuantity();
         }
         double shippingFee = 25000.0;
+
+        if (dto.getShippingAddress() != null && !dto.getShippingAddress().toUpperCase().startsWith("[COLOMBIA]")) {
+            shippingFee = 150000.0;
+        }
+
         order.setTotalAmount(subtotal + shippingFee);
         if (cart.getClient() != null) {
             order.setClient(cart.getClient());
