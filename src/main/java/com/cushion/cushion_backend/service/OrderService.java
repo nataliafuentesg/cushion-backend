@@ -15,6 +15,7 @@ public class OrderService {
     @Autowired private ProductRepository productRepository;
     @Autowired private ClientRepository clientRepository;
     @Autowired private TelegramService telegramService;
+    @Autowired private EmailService emailService;
 
     @Transactional
     public Order createOrderFromCart(OrderRequestDTO dto, String sessionId) {
@@ -84,6 +85,32 @@ public class OrderService {
         } catch (Exception e) {
             System.err.println("No se pudo enviar la alerta de Telegram: " + e.getMessage());
         }
+
+        // --- CORREO PARA EL CLIENTE ---
+        String clienteBody = """
+    <h2 style="color: #B89B6A;">¡GRACIAS POR TU ELECCIÓN!</h2>
+    <p>Hola <b>%s</b>, hemos registrado tu pedido <b>#%s</b>.</p>
+    <p>Nuestro equipo de expertos está verificando la disponibilidad de tus piezas. 
+    En breve nos pondremos en contacto contigo para coordinar el pago y envío.</p>
+    <p><b>Total:</b> $%s</p>
+    """.formatted(savedOrder.getCustomerName(), savedOrder.getOrderNumber(), String.format("%,.0f", savedOrder.getTotalAmount()));
+
+        emailService.sendHtmlEmail(savedOrder.getCustomerEmail(), "Confirmación de Pedido - Cushion #" + savedOrder.getOrderNumber(), clienteBody);
+
+// --- CORREO INTERNO (PARA USTEDES) ---
+        String internoBody = """
+    <h2 style="color: #d9534f;">ALERTA DE NUEVA VENTA</h2>
+    <p>Se ha generado un nuevo pedido en la web:</p>
+    <ul>
+        <li><b>Orden:</b> #%s</li>
+        <li><b>Cliente:</b> %s</li>
+        <li><b>Email:</b> %s</li>
+        <li><b>Monto:</b> $%s</li>
+    </ul>
+    <p>Por favor, revisa el panel administrativo para los detalles de envío.</p>
+    """.formatted(savedOrder.getOrderNumber(), savedOrder.getCustomerName(), savedOrder.getCustomerEmail(), String.format("%,.0f", savedOrder.getTotalAmount()));
+
+        emailService.sendHtmlEmail("admin@cushion.com", "🚨 NUEVA VENTA - Orden #" + savedOrder.getOrderNumber(), internoBody);
 
         return savedOrder;
     }
