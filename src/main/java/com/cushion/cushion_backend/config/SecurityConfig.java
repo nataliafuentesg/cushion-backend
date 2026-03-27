@@ -31,20 +31,16 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        // Rutas Públicas (Cualquiera puede entrar)
                         .requestMatchers("/api/clients/login", "/api/clients/register").permitAll()
-                        .requestMatchers("/api/products/**").permitAll()
-                        .requestMatchers("/api/cart/**").permitAll()
+                        .requestMatchers("/api/products", "/api/products/**").permitAll() // <--- EL ARREGLO ESTÁ AQUÍ
+                        .requestMatchers("/api/cart", "/api/cart/**").permitAll() // <--- Y AQUÍ POR PREVENCIÓN
                         .requestMatchers("/api/orders/create").permitAll()
                         .requestMatchers("/api/contact").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
-
-                        // Rutas Protegidas (SOLO ADMINISTRADORES)
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
                         .anyRequest().authenticated()
                 )
-                // NUEVO: Ponemos a nuestro portero (el filtro JWT) a revisar las peticiones
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .headers(headers -> headers.frameOptions(frame -> frame.disable()));
 
