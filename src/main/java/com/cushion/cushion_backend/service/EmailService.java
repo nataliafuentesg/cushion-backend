@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -19,6 +20,7 @@ public class EmailService {
 
     private final String LOGO_URL = "https://raw.githubusercontent.com/nataliafuentesg/cushion-frontend/main/src/assets/images/logo-cushion-black.png";
 
+    @Async
     public void sendHtmlEmail(String to, String subject, String bodyContent) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
