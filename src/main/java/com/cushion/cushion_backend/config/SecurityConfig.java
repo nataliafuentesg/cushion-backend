@@ -34,8 +34,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // Agrupamos todas las rutas públicas claramente
                         .requestMatchers("/api/clients/login", "/api/clients/register", "/api/clients/forgot-password", "/api/clients/reset-password").permitAll()
-                        .requestMatchers("/api/products/**", "/api/cart/**", "/api/contact/**", "/api/categories/**").permitAll()
-                        .requestMatchers("/h2-console/**").permitAll()
+                        .requestMatchers("/api/products/**", "/api/cart/**", "/api/contact/**", "/api/categories/**", "/error").permitAll()                        .requestMatchers("/h2-console/**").permitAll()
                         // Rutas privadas
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
