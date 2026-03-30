@@ -58,13 +58,12 @@ public class AdminController {
                     existingProduct.setStock(productDetails.getStock());
                     existingProduct.setFeatured(productDetails.isFeatured());
 
-                    // Especificaciones de Alta Joyería (Nombres corregidos)
+                    // Especificaciones de Alta Joyería
                     existingProduct.setGemstoneType(productDetails.getGemstoneType());
                     existingProduct.setCutType(productDetails.getCutType());
-                    existingProduct.setCaratWeight(productDetails.getCaratWeight()); // Corregido: antes decía carats
+                    existingProduct.setCaratWeight(productDetails.getCaratWeight());
                     existingProduct.setMetalType(productDetails.getMetalType());
                     existingProduct.setClarity(productDetails.getClarity());
-                    // Se eliminó weightGrams porque no existe en tu @Entity
 
                     // Actualización de Imágenes (Reemplazo total)
                     existingProduct.getImages().clear();
@@ -75,7 +74,17 @@ public class AdminController {
                         });
                     }
 
-                    return ResponseEntity.ok(productRepository.save(existingProduct));
+                    // ✨ PASO 1: Guardamos el producto en una variable temporal
+                    Product savedProduct = productRepository.save(existingProduct);
+
+                    // ✨ PASO 2: "Despertamos" las colecciones perezosas antes de que Java arme el JSON
+                    savedProduct.getImages().size();
+                    if (savedProduct.getReviews() != null) {
+                        savedProduct.getReviews().size();
+                    }
+
+                    // ✨ PASO 3: Retornamos el producto ya despierto y listo
+                    return ResponseEntity.ok(savedProduct);
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
