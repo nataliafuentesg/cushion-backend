@@ -21,7 +21,7 @@ public class AdminController {
     @Autowired private ProductRepository productRepository;
     @Autowired private ReviewRepository reviewRepository; // Asume que tienes este repositorio creado
 
-    // --- GESTIÓN DE ÓRDENES ---
+    @Transactional
     @GetMapping("/orders")
     public List<Order> getAllOrders() {
         return orderRepository.findAll();
