@@ -21,18 +21,9 @@ public class AdminController {
     @Autowired private ProductRepository productRepository;
     @Autowired private ReviewRepository reviewRepository; // Asume que tienes este repositorio creado
 
-    @Transactional
     @GetMapping("/orders")
     public List<Order> getAllOrders() {
-        List<Order> orders = orderRepository.findAll();
-        for (Order order : orders) {
-            if (order.getItems() != null) {
-                order.getItems().size(); // Obligamos a Java a leer los productos comprados
-            }
-        }
-
-        // 3. Retornamos la lista ya despierta
-        return orders;
+        return orderRepository.findAll();
     }
 
     @PutMapping("/orders/{id}/status")
