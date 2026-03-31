@@ -24,7 +24,15 @@ public class AdminController {
     @Transactional
     @GetMapping("/orders")
     public List<Order> getAllOrders() {
-        return orderRepository.findAll();
+        List<Order> orders = orderRepository.findAll();
+        for (Order order : orders) {
+            if (order.getItems() != null) {
+                order.getItems().size(); // Obligamos a Java a leer los productos comprados
+            }
+        }
+
+        // 3. Retornamos la lista ya despierta
+        return orders;
     }
 
     @PutMapping("/orders/{id}/status")
