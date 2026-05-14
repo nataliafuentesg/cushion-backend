@@ -51,4 +51,9 @@ public class Product {
         reviews.add(review);
         review.setProduct(this);
     }
+
+    @ElementCollection
+    @CollectionTable(name = "product_occasions", joinColumns = @JoinColumn(name = "product_id"))
+    @Column(name = "occasion")
+    private List<String> occasions = new ArrayList<>();
 }
