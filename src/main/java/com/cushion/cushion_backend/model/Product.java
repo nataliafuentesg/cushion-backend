@@ -30,6 +30,9 @@ public class Product {
     private Integer stock;
     private boolean featured;
 
+    private String totalWeight;
+    private String diamondDetails;
+
     private String gemstoneType;
     private String cutType;
     private String caratWeight;
