@@ -56,15 +56,15 @@ public class AdminController {
                     existingProduct.setCategory(productDetails.getCategory());
                     existingProduct.setStock(productDetails.getStock());
                     existingProduct.setFeatured(productDetails.isFeatured());
-
-                    // Especificaciones de Alta Joyería
                     existingProduct.setGemstoneType(productDetails.getGemstoneType());
                     existingProduct.setCutType(productDetails.getCutType());
                     existingProduct.setCaratWeight(productDetails.getCaratWeight());
                     existingProduct.setMetalType(productDetails.getMetalType());
                     existingProduct.setClarity(productDetails.getClarity());
 
-                    // Actualización de Imágenes (Reemplazo total)
+                    existingProduct.setTotalWeight(productDetails.getTotalWeight());
+                    existingProduct.setDiamondDetails(productDetails.getDiamondDetails());
+
                     existingProduct.getImages().clear();
                     if (productDetails.getImages() != null) {
                         productDetails.getImages().forEach(img -> {
@@ -73,21 +73,22 @@ public class AdminController {
                         });
                     }
 
-                    // ✨ PASO 1: Guardamos el producto en una variable temporal
+                    existingProduct.getOccasions().clear();
+                    if (productDetails.getOccasions() != null) {
+                        existingProduct.getOccasions().addAll(productDetails.getOccasions());
+                    }
                     Product savedProduct = productRepository.save(existingProduct);
 
-                    // ✨ PASO 2: "Despertamos" las colecciones perezosas antes de que Java arme el JSON
                     savedProduct.getImages().size();
+                    savedProduct.getOccasions().size(); // Despertamos la nueva lista de ocasiones
                     if (savedProduct.getReviews() != null) {
                         savedProduct.getReviews().size();
                     }
 
-                    // ✨ PASO 3: Retornamos el producto ya despierto y listo
                     return ResponseEntity.ok(savedProduct);
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
-
     @Transactional
     @DeleteMapping("/products/{id}")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
