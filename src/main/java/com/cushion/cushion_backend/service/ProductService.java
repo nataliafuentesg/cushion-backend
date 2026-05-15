@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -41,10 +42,11 @@ public class ProductService {
     @Transactional
     public ProductDTO createProduct(ProductDTO dto) {
         Product product = new Product();
-        // Copia propiedades básicas (name, price, slug, featured, etc.)
         BeanUtils.copyProperties(dto, product);
 
-        // Mapeo manual de Imágenes (Relación OneToMany)
+        if (dto.getOccasions() != null) {
+            product.setOccasions(new ArrayList<>(dto.getOccasions()));
+        }
         if (dto.getImages() != null) {
             dto.getImages().forEach(imgDto -> {
                 ProductImage img = new ProductImage();
@@ -52,7 +54,6 @@ public class ProductService {
                 product.addImage(img);
             });
         }
-
         if (dto.getReviews() != null) {
             dto.getReviews().forEach(revDto -> {
                 Review review = new Review();
@@ -69,15 +70,21 @@ public class ProductService {
         ProductDTO dto = new ProductDTO();
         BeanUtils.copyProperties(product, dto);
 
-        // Convertir Imágenes a DTOs
-        List<ProductImageDTO> imageDtos = product.getImages().stream().map(img -> {
-            ProductImageDTO imgDto = new ProductImageDTO();
-            BeanUtils.copyProperties(img, imgDto);
-            return imgDto;
-        }).collect(Collectors.toList());
-        dto.setImages(imageDtos);
+        // ✨ NUEVO: Asegurarnos de enviar las ocasiones al Front
+        if (product.getOccasions() != null) {
+            dto.setOccasions(new ArrayList<>(product.getOccasions()));
+        }
 
-        // NUEVO: Convertir Reviews a DTOs para el Front
+        // Convertir Imágenes a DTOs
+        if (product.getImages() != null) {
+            List<ProductImageDTO> imageDtos = product.getImages().stream().map(img -> {
+                ProductImageDTO imgDto = new ProductImageDTO();
+                BeanUtils.copyProperties(img, imgDto);
+                return imgDto;
+            }).collect(Collectors.toList());
+            dto.setImages(imageDtos);
+        }
+
         if (product.getReviews() != null) {
             List<ReviewDTO> reviewDtos = product.getReviews().stream().map(rev -> {
                 ReviewDTO revDto = new ReviewDTO();
@@ -89,8 +96,6 @@ public class ProductService {
 
         return dto;
     }
-
-    // ProductService.java
     @Transactional
     public ReviewDTO addReview(String slug, ReviewDTO reviewDto) {
         if (reviewDto.getSubtitleVerification() != null && !reviewDto.getSubtitleVerification().isEmpty()) {
