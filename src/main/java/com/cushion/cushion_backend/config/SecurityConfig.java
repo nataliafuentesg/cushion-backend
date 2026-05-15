@@ -32,8 +32,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        // Agrupamos todas las rutas públicas claramente
-                        .requestMatchers("/api/clients/login", "/api/clients/register", "/api/clients/forgot-password", "/api/clients/reset-password").permitAll()
+                        .requestMatchers("/", "/index.html", "/assets/**", "/images/**", "/robots.txt", "/favicon.ico").permitAll()                        .requestMatchers("/api/clients/login", "/api/clients/register", "/api/clients/forgot-password", "/api/clients/reset-password").permitAll()
                         .requestMatchers("/api/products/**", "/api/cart/**", "/api/contact/**", "/api/categories/**", "/error").permitAll()                        .requestMatchers("/h2-console/**").permitAll()
                         // Rutas privadas
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
