@@ -121,6 +121,9 @@ public class ProductService {
     private ReviewDTO convertToReviewDTO(Review review) {
         ReviewDTO dto = new ReviewDTO();
         BeanUtils.copyProperties(review, dto);
+        if (review.getProduct() != null) {
+            dto.setProductName(review.getProduct().getName());
+        }
         return dto;
     }
 }

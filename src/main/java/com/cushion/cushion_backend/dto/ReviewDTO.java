@@ -12,4 +12,5 @@ public class ReviewDTO {
     private String comment;
     private LocalDate date;
     private String subtitleVerification;
+    private String productName;
 }
