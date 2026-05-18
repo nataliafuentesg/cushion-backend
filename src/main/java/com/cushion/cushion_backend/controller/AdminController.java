@@ -1,5 +1,6 @@
 package com.cushion.cushion_backend.controller;
 
+import com.cushion.cushion_backend.dto.ReviewDTO;
 import com.cushion.cushion_backend.model.Order;
 import com.cushion.cushion_backend.model.Product;
 import com.cushion.cushion_backend.model.Review;
@@ -12,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -96,10 +98,26 @@ public class AdminController {
         return ResponseEntity.noContent().build();
     }
 
-    // --- GESTIÓN DE RESEÑAS ---
     @GetMapping("/reviews")
-    public List<Review> getAllReviews() {
-        return reviewRepository.findAll();
+    public List<ReviewDTO> getAllReviews() {
+        List<Review> reviews = reviewRepository.findAll();
+
+        return reviews.stream().map(review -> {
+            ReviewDTO dto = new ReviewDTO();
+            dto.setId(review.getId());
+            dto.setAuthor(review.getAuthor());
+            dto.setRating(review.getRating());
+            dto.setComment(review.getComment());
+            dto.setDate(review.getDate());
+
+            if (review.getProduct() != null) {
+                dto.setProductName(review.getProduct().getName());
+            } else {
+                dto.setProductName("Producto no disponible");
+            }
+
+            return dto;
+        }).collect(Collectors.toList());
     }
 
     @DeleteMapping("/reviews/{id}")
