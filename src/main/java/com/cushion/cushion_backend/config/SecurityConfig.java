@@ -38,6 +38,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/products/**", "/api/cart/**", "/api/contact/**", "/api/categories/**", "/error").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/jewelry-requests").permitAll()
                         .requestMatchers("/api/jewelry-requests/admin/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/product-inquiries").permitAll()
+                        .requestMatchers("/api/product-inquiries/admin/**").hasRole("ADMIN")
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/api/orders/client/**").authenticated()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
