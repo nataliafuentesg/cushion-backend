@@ -17,7 +17,7 @@ public class OrderItem {
 
     @ManyToOne
     @JoinColumn(name = "product_id")
-    @JsonIgnoreProperties({"images", "reviews"})
+    @JsonIgnoreProperties({"images", "reviews", "occasions"})
     private Product product;
 
     @ManyToOne
