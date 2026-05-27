@@ -82,7 +82,7 @@ public class ClientService {
             <p>Has solicitado restablecer tu acceso a <b>Cushion</b>.</p>
             <p>Haz clic en el siguiente botón para continuar:</p>
             <div style="text-align: center; margin: 30px 0;">
-                <a href="https://cushion.com/reset-password?token=%s" 
+                <a href="https://cushionjewelry.com/reset-password?token=%s" 
                    style="background: #1a1a1a; color: #fff; padding: 12px 25px; text-decoration: none; font-weight: bold; border: 1px solid #B89B6A; display: inline-block;">
                    RESTABLECER MI CLAVE
                 </a>

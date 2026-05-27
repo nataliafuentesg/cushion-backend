@@ -60,14 +60,12 @@ public class OrderService {
         }
 
         order.setTotalAmount(subtotal + shippingFee);
-        if (cart.getClient() != null) {
-            order.setClient(cart.getClient());
-        }
 
+        // Asignación del cliente: prioridad al clientId del DTO, fallback al cliente del carrito
         if (dto.getClientId() != null) {
-            Client client = clientRepository.findById(dto.getClientId()).orElse(null);
-            order.setClient(client);
-        } else if (cart.getClient() != null) {
+            clientRepository.findById(dto.getClientId()).ifPresent(order::setClient);
+        }
+        if (order.getClient() == null && cart.getClient() != null) {
             order.setClient(cart.getClient());
         }
 
