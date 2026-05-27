@@ -36,6 +36,8 @@ public class SecurityConfig {
                         .requestMatchers("/", "/index.html", "/assets/**", "/images/**", "/robots.txt", "/favicon.ico").permitAll()
                         .requestMatchers("/api/clients/login", "/api/clients/register", "/api/clients/forgot-password", "/api/clients/reset-password").permitAll()
                         .requestMatchers("/api/products/**", "/api/cart/**", "/api/contact/**", "/api/categories/**", "/error").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/jewelry-requests").permitAll()
+                        .requestMatchers("/api/jewelry-requests/admin/**").hasRole("ADMIN")
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/api/orders/client/**").authenticated()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
