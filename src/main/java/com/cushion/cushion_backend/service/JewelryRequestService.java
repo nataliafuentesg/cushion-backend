@@ -52,56 +52,64 @@ public class JewelryRequestService {
 
         // Correo de confirmación al cliente (solo si eligió formulario)
         if ("FORMULARIO".equals(saved.getContactMethod())) {
-            String clientBody = """
-                <h2 style="color:#4C7F62; font-family:Georgia,serif;">¡Recibimos tu consulta!</h2>
-                <p>Hola <b>%s</b>,</p>
-                <p>Hemos registrado tu solicitud de diseño personalizado con esmeraldas colombianas.
-                Nuestro equipo de expertos revisará tu consulta y se pondrá en contacto contigo
-                en las próximas <b>24 horas hábiles</b> al correo <b>%s</b>%s.</p>
-                <p style="color:#B89B6A; font-style:italic;">
-                    La esmeralda perfecta para ti está a punto de encontrarte.
-                </p>
-                <p>Equipo Cushion — Alta Joyería</p>
-                """.formatted(
-                    saved.getCustomerName(),
+            try {
+                String clientBody = """
+                    <h2 style="color:#4C7F62; font-family:Georgia,serif;">¡Recibimos tu consulta!</h2>
+                    <p>Hola <b>%s</b>,</p>
+                    <p>Hemos registrado tu solicitud de diseño personalizado con esmeraldas colombianas.
+                    Nuestro equipo de expertos revisará tu consulta y se pondrá en contacto contigo
+                    en las próximas <b>24 horas hábiles</b> al correo <b>%s</b>%s.</p>
+                    <p style="color:#B89B6A; font-style:italic;">
+                        La esmeralda perfecta para ti está a punto de encontrarte.
+                    </p>
+                    <p>Equipo Cushion — Alta Joyería</p>
+                    """.formatted(
+                        saved.getCustomerName(),
+                        saved.getCustomerEmail(),
+                        saved.getCustomerPhone() != null ? " o al WhatsApp " + saved.getCustomerPhone() : ""
+                    );
+                emailService.sendHtmlEmail(
                     saved.getCustomerEmail(),
-                    saved.getCustomerPhone() != null ? " o al WhatsApp " + saved.getCustomerPhone() : ""
+                    "Cushion — Recibimos tu consulta de diseño personalizado",
+                    clientBody
                 );
-            emailService.sendHtmlEmail(
-                saved.getCustomerEmail(),
-                "Cushion — Recibimos tu consulta de diseño personalizado",
-                clientBody
-            );
+            } catch (Exception e) {
+                System.err.println("Error enviando email al cliente: " + e.getMessage());
+            }
         }
 
         // Correo interno al equipo
-        String adminBody = """
-            <h2 style="color:#4C7F62;">Nueva consulta de esmeralda personalizada</h2>
-            <table style="border-collapse:collapse; width:100%; font-family:Arial,sans-serif; font-size:14px;">
-                <tr><td style="padding:8px; border:1px solid #ddd;"><b>Canal</b></td><td style="padding:8px; border:1px solid #ddd;">%s</td></tr>
-                <tr><td style="padding:8px; border:1px solid #ddd;"><b>Nombre</b></td><td style="padding:8px; border:1px solid #ddd;">%s</td></tr>
-                <tr><td style="padding:8px; border:1px solid #ddd;"><b>Email</b></td><td style="padding:8px; border:1px solid #ddd;">%s</td></tr>
-                <tr><td style="padding:8px; border:1px solid #ddd;"><b>Teléfono</b></td><td style="padding:8px; border:1px solid #ddd;">%s</td></tr>
-                <tr><td style="padding:8px; border:1px solid #ddd;"><b>Ocasión</b></td><td style="padding:8px; border:1px solid #ddd;">%s</td></tr>
-                <tr><td style="padding:8px; border:1px solid #ddd;"><b>Tipo de joya</b></td><td style="padding:8px; border:1px solid #ddd;">%s</td></tr>
-                <tr><td style="padding:8px; border:1px solid #ddd;"><b>Gema</b></td><td style="padding:8px; border:1px solid #ddd;">%s</td></tr>
-                <tr><td style="padding:8px; border:1px solid #ddd;"><b>Metal</b></td><td style="padding:8px; border:1px solid #ddd;">%s</td></tr>
-                <tr><td style="padding:8px; border:1px solid #ddd;"><b>Presupuesto</b></td><td style="padding:8px; border:1px solid #ddd;">%s</td></tr>
-                <tr><td style="padding:8px; border:1px solid #ddd;"><b>Ideas</b></td><td style="padding:8px; border:1px solid #ddd;">%s</td></tr>
-            </table>
-            """.formatted(
-                saved.getContactMethod(),
-                saved.getCustomerName(),
-                saved.getCustomerEmail(),
-                saved.getCustomerPhone() != null ? saved.getCustomerPhone() : "No indicado",
-                saved.getOccasion(),
-                saved.getJewelryType(),
-                saved.getGemstonePreference(),
-                saved.getMetalType(),
-                saved.getBudgetRange(),
-                saved.getIdeas() != null ? saved.getIdeas() : "Sin descripción adicional"
-            );
-        emailService.sendHtmlEmail("admin@cushion.com", "💎 Nueva consulta esmeralda — " + saved.getContactMethod(), adminBody);
+        try {
+            String adminBody = """
+                <h2 style="color:#4C7F62;">Nueva consulta de esmeralda personalizada</h2>
+                <table style="border-collapse:collapse; width:100%; font-family:Arial,sans-serif; font-size:14px;">
+                    <tr><td style="padding:8px; border:1px solid #ddd;"><b>Canal</b></td><td style="padding:8px; border:1px solid #ddd;">%s</td></tr>
+                    <tr><td style="padding:8px; border:1px solid #ddd;"><b>Nombre</b></td><td style="padding:8px; border:1px solid #ddd;">%s</td></tr>
+                    <tr><td style="padding:8px; border:1px solid #ddd;"><b>Email</b></td><td style="padding:8px; border:1px solid #ddd;">%s</td></tr>
+                    <tr><td style="padding:8px; border:1px solid #ddd;"><b>Teléfono</b></td><td style="padding:8px; border:1px solid #ddd;">%s</td></tr>
+                    <tr><td style="padding:8px; border:1px solid #ddd;"><b>Ocasión</b></td><td style="padding:8px; border:1px solid #ddd;">%s</td></tr>
+                    <tr><td style="padding:8px; border:1px solid #ddd;"><b>Tipo de joya</b></td><td style="padding:8px; border:1px solid #ddd;">%s</td></tr>
+                    <tr><td style="padding:8px; border:1px solid #ddd;"><b>Gema</b></td><td style="padding:8px; border:1px solid #ddd;">%s</td></tr>
+                    <tr><td style="padding:8px; border:1px solid #ddd;"><b>Metal</b></td><td style="padding:8px; border:1px solid #ddd;">%s</td></tr>
+                    <tr><td style="padding:8px; border:1px solid #ddd;"><b>Presupuesto</b></td><td style="padding:8px; border:1px solid #ddd;">%s</td></tr>
+                    <tr><td style="padding:8px; border:1px solid #ddd;"><b>Ideas</b></td><td style="padding:8px; border:1px solid #ddd;">%s</td></tr>
+                </table>
+                """.formatted(
+                    saved.getContactMethod(),
+                    saved.getCustomerName(),
+                    saved.getCustomerEmail(),
+                    saved.getCustomerPhone() != null ? saved.getCustomerPhone() : "No indicado",
+                    saved.getOccasion(),
+                    saved.getJewelryType(),
+                    saved.getGemstonePreference(),
+                    saved.getMetalType(),
+                    saved.getBudgetRange(),
+                    saved.getIdeas() != null ? saved.getIdeas() : "Sin descripción adicional"
+                );
+            emailService.sendHtmlEmail("nata.ltda1412@gmail.com", "💎 Nueva consulta esmeralda — " + saved.getContactMethod(), adminBody);
+        } catch (Exception e) {
+            System.err.println("Error enviando email admin: " + e.getMessage());
+        }
 
         return saved;
     }
