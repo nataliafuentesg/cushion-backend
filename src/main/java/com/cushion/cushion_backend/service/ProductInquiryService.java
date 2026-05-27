@@ -10,15 +10,17 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 public class ProductInquiryService {
 
     @Autowired private ProductInquiryRepository repository;
     @Autowired private TelegramService telegramService;
+    @Autowired private MetaConversionsService metaConversions;
 
     @Transactional
-    public ProductInquiry registerInquiry(ProductInquiryDTO dto) {
+    public ProductInquiry registerInquiry(ProductInquiryDTO dto, String clientIp, String userAgent) {
         ProductInquiry inquiry = new ProductInquiry();
         inquiry.setProductSlug(dto.getProductSlug());
         inquiry.setProductName(dto.getProductName());
@@ -29,6 +31,14 @@ public class ProductInquiryService {
         inquiry.setUtmCampaign(dto.getUtmCampaign());
 
         ProductInquiry saved = repository.save(inquiry);
+
+        // ── Meta CAPI — Contact ──
+        try {
+            String eventId = "contact_" + saved.getId() + "_" + UUID.randomUUID().toString().substring(0, 8);
+            metaConversions.sendContact(eventId, saved.getProductSlug(), saved.getClientEmail(), clientIp, userAgent);
+        } catch (Exception e) {
+            System.err.println("[Meta CAPI] Contact error: " + e.getMessage());
+        }
 
         // Notificación Telegram al equipo
         try {

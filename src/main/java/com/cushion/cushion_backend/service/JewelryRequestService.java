@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 public class JewelryRequestService {
@@ -16,9 +17,10 @@ public class JewelryRequestService {
     @Autowired private JewelryRequestRepository jewelryRequestRepository;
     @Autowired private EmailService emailService;
     @Autowired private TelegramService telegramService;
+    @Autowired private MetaConversionsService metaConversions;
 
     @Transactional
-    public JewelryRequest createRequest(JewelryRequestDTO dto) {
+    public JewelryRequest createRequest(JewelryRequestDTO dto, String clientIp, String userAgent) {
         JewelryRequest request = new JewelryRequest();
         request.setCustomerName(dto.getCustomerName());
         request.setCustomerEmail(dto.getCustomerEmail());
@@ -33,7 +35,15 @@ public class JewelryRequestService {
 
         JewelryRequest saved = jewelryRequestRepository.save(request);
 
-        // Notificación interna por Telegram
+        // ── Meta CAPI — Lead ──
+        try {
+            String eventId = "lead_" + saved.getId() + "_" + UUID.randomUUID().toString().substring(0, 8);
+            metaConversions.sendLead(eventId, saved.getCustomerEmail(), clientIp, userAgent);
+        } catch (Exception e) {
+            System.err.println("[Meta CAPI] Lead error: " + e.getMessage());
+        }
+
+        // ── Telegram ──
         try {
             String canal = saved.getContactMethod().equals("WHATSAPP") ? "💬 WhatsApp" : "📋 Formulario";
             String msg = "💎 <b>NUEVA CONSULTA DE ESMERALDA</b>\n\n" +
@@ -47,10 +57,10 @@ public class JewelryRequestService {
                     "Revisa el panel admin para ver los detalles completos.";
             telegramService.sendNotification(msg);
         } catch (Exception e) {
-            System.err.println("Error enviando Telegram: " + e.getMessage());
+            System.err.println("Telegram error: " + e.getMessage());
         }
 
-        // Correo de confirmación al cliente (solo si eligió formulario)
+        // ── Email de confirmación al cliente ──
         if ("FORMULARIO".equals(saved.getContactMethod())) {
             try {
                 String clientBody = """
@@ -74,11 +84,11 @@ public class JewelryRequestService {
                     clientBody
                 );
             } catch (Exception e) {
-                System.err.println("Error enviando email al cliente: " + e.getMessage());
+                System.err.println("Email cliente error: " + e.getMessage());
             }
         }
 
-        // Correo interno al equipo
+        // ── Email interno ──
         try {
             String adminBody = """
                 <h2 style="color:#4C7F62;">Nueva consulta de esmeralda personalizada</h2>
@@ -106,9 +116,10 @@ public class JewelryRequestService {
                     saved.getBudgetRange(),
                     saved.getIdeas() != null ? saved.getIdeas() : "Sin descripción adicional"
                 );
-            emailService.sendHtmlEmail("nata.ltda1412@gmail.com", "💎 Nueva consulta esmeralda — " + saved.getContactMethod(), adminBody);
+            emailService.sendHtmlEmail("nata.ltda1412@gmail.com",
+                    "💎 Nueva consulta esmeralda — " + saved.getContactMethod(), adminBody);
         } catch (Exception e) {
-            System.err.println("Error enviando email admin: " + e.getMessage());
+            System.err.println("Email admin error: " + e.getMessage());
         }
 
         return saved;
@@ -130,7 +141,7 @@ public class JewelryRequestService {
     @Transactional(readOnly = true)
     public Map<String, Long> getStats() {
         long formulario = jewelryRequestRepository.countByContactMethod("FORMULARIO");
-        long whatsapp = jewelryRequestRepository.countByContactMethod("WHATSAPP");
+        long whatsapp   = jewelryRequestRepository.countByContactMethod("WHATSAPP");
         return Map.of("FORMULARIO", formulario, "WHATSAPP", whatsapp, "TOTAL", formulario + whatsapp);
     }
 }
