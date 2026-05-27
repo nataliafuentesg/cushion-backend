@@ -12,16 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.*;
 
-/**
- * Meta Conversions API (CAPI) — eventos server-side.
- *
- * Configurar en application.properties:
- *   meta.pixel.id=TU_PIXEL_ID
- *   meta.access.token=TU_ACCESS_TOKEN
- *
- * Los eventos se envían de forma asíncrona (no bloquean la respuesta al cliente).
- * Meta deduplica con el Pixel del navegador usando el mismo event_id.
- */
+
 @Service
 public class MetaConversionsService {
 
