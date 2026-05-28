@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -20,23 +21,26 @@ public class OrderController {
     @Autowired private OrderRepository orderRepository;
 
     @PostMapping("/create")
-    public ResponseEntity<OrderResponseDTO> createOrder(
+    public ResponseEntity<?> createOrder(
             @RequestBody OrderRequestDTO orderDto,
             @RequestParam String sessionId,
             HttpServletRequest request) {
+        try {
+            String ip = extractIp(request);
+            String ua = request.getHeader("User-Agent");
 
-        String ip = extractIp(request);
-        String ua = request.getHeader("User-Agent");
+            Order savedOrder = orderService.createOrderFromCart(orderDto, sessionId, ip, ua);
 
-        Order savedOrder = orderService.createOrderFromCart(orderDto, sessionId, ip, ua);
+            OrderResponseDTO response = new OrderResponseDTO();
+            response.setOrderNumber(savedOrder.getOrderNumber());
+            response.setStatus(savedOrder.getStatus());
+            response.setTotalAmount(savedOrder.getTotalAmount());
+            response.setCustomerEmail(savedOrder.getCustomerEmail());
 
-        OrderResponseDTO response = new OrderResponseDTO();
-        response.setOrderNumber(savedOrder.getOrderNumber());
-        response.setStatus(savedOrder.getStatus());
-        response.setTotalAmount(savedOrder.getTotalAmount());
-        response.setCustomerEmail(savedOrder.getCustomerEmail());
-
-        return ResponseEntity.ok(response);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
     }
 
     @GetMapping("/client/{clientId}")
