@@ -45,6 +45,11 @@ dependencies {
 	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
 
 	implementation 'com.fasterxml.jackson.core:jackson-databind'
+
+	// Google Content API for Shopping (sincronización con Merchant Center)
+	implementation 'com.google.apis:google-api-services-content:v2.1-rev20250603-2.0.0'
+	implementation 'com.google.auth:google-auth-library-oauth2-http:1.23.0'
+	implementation 'com.google.http-client:google-http-client-jackson2:1.44.1'
 }
 
 tasks.named('test') {

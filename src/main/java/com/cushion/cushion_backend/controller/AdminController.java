@@ -7,12 +7,14 @@ import com.cushion.cushion_backend.model.Review;
 import com.cushion.cushion_backend.repository.OrderRepository;
 import com.cushion.cushion_backend.repository.ProductRepository;
 import com.cushion.cushion_backend.repository.ReviewRepository;
+import com.cushion.cushion_backend.service.GoogleMerchantService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -22,6 +24,7 @@ public class AdminController {
     @Autowired private OrderRepository orderRepository;
     @Autowired private ProductRepository productRepository;
     @Autowired private ReviewRepository reviewRepository; // Asume que tienes este repositorio creado
+    @Autowired private GoogleMerchantService googleMerchantService;
 
     @GetMapping("/orders")
     public List<Order> getAllOrders() {
@@ -42,7 +45,9 @@ public class AdminController {
         if (product.getImages() != null) {
             product.getImages().forEach(img -> img.setProduct(product));
         }
-        return productRepository.save(product);
+        Product saved = productRepository.save(product);
+        googleMerchantService.upsertProduct(saved); // Sincroniza con Google Merchant
+        return saved;
     }
 
     @Transactional
@@ -87,6 +92,8 @@ public class AdminController {
                         savedProduct.getReviews().size();
                     }
 
+                    googleMerchantService.upsertProduct(savedProduct); // Sincroniza con Google Merchant
+
                     return ResponseEntity.ok(savedProduct);
                 })
                 .orElse(ResponseEntity.notFound().build());
@@ -95,7 +102,30 @@ public class AdminController {
     @DeleteMapping("/products/{id}")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
         productRepository.deleteById(id);
+        googleMerchantService.deleteProduct(id); // Elimina también de Google Merchant
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Sincronización masiva manual — sube TODO el catálogo a Google Merchant.
+     * Úsalo una vez para la primera carga, o si necesitas re-sincronizar todo.
+     * GET /api/admin/merchant/sync-all
+     */
+    @PostMapping("/merchant/sync-all")
+    public ResponseEntity<Map<String, Object>> syncAllToMerchant() {
+        if (!googleMerchantService.isEnabled()) {
+            return ResponseEntity.ok(Map.of(
+                    "status", "disabled",
+                    "message", "Google Merchant no está configurado en el servidor."
+            ));
+        }
+        List<Product> all = productRepository.findAll();
+        googleMerchantService.syncAll(all); // asíncrono — corre en background
+        return ResponseEntity.ok(Map.of(
+                "status", "started",
+                "message", "Sincronización de " + all.size() + " productos iniciada en segundo plano.",
+                "total", all.size()
+        ));
     }
 
     @GetMapping("/reviews")
