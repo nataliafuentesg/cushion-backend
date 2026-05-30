@@ -36,6 +36,7 @@ public class SecurityConfig {
                         .requestMatchers("/", "/index.html", "/assets/**", "/images/**", "/robots.txt", "/favicon.ico").permitAll()
                         .requestMatchers("/api/clients/login", "/api/clients/register", "/api/clients/forgot-password", "/api/clients/reset-password").permitAll()
                         .requestMatchers("/api/products/**", "/api/cart/**", "/api/contact/**", "/api/categories/**", "/error").permitAll()
+                        .requestMatchers("/api/feed/**").permitAll()          // Feed público para Google Merchant Center
                         .requestMatchers(HttpMethod.POST, "/api/jewelry-requests").permitAll()
                         .requestMatchers("/api/jewelry-requests/admin/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/product-inquiries").permitAll()
