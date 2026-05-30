@@ -43,7 +43,7 @@ public class GoogleMerchantFeedController {
         sb.append("  <channel>\n");
         sb.append("    <title>Cushion Jewelry</title>\n");
         sb.append("    <link>").append(SITE_URL).append("</link>\n");
-        sb.append("    <description>Alta Joyería y Esmeraldas Colombianas — Bogotá, Colombia</description>\n\n");
+        sb.append("    <description><![CDATA[Alta Joyería y Esmeraldas Colombianas — Bogotá, Colombia]]></description>\n\n");
 
         for (ProductDTO p : products) {
             sb.append(buildItem(p));
@@ -103,9 +103,9 @@ public class GoogleMerchantFeedController {
         // ── Marca, condición, categoría ──────────────────────────────────────
         item.append("      <g:brand>").append(BRAND).append("</g:brand>\n");
         item.append("      <g:condition>new</g:condition>\n");
-        item.append("      <g:google_product_category>")
+        item.append("      <g:google_product_category><![CDATA[")
             .append(googleCategory(p.getCategory()))
-            .append("</g:google_product_category>\n");
+            .append("]]></g:google_product_category>\n");
         item.append("      <g:product_type><![CDATA[")
             .append(safe(p.getCategory()))
             .append("]]></g:product_type>\n");
