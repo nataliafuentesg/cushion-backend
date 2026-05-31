@@ -131,7 +131,7 @@ public class GoogleMerchantService {
             try {
                 shoppingContent.products().insert(merchantId, buildGoogleProduct(product)).execute();
                 ok++;
-            } catch (IOException e) {
+            } catch (Exception e) {  // Exception (no solo IOException) — un producto malo no detiene el lote
                 log.error("[GoogleMerchant] Fallo en producto {}: {}", product.getId(), e.getMessage());
                 fail++;
             }

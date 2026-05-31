@@ -119,7 +119,7 @@ public class AdminController {
                     "message", "Google Merchant no está configurado en el servidor."
             ));
         }
-        List<Product> all = productRepository.findAll();
+        List<Product> all = productRepository.findAllWithImages(); // imágenes precargadas para el hilo async
         googleMerchantService.syncAll(all); // asíncrono — corre en background
         return ResponseEntity.ok(Map.of(
                 "status", "started",
