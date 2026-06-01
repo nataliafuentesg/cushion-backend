@@ -8,6 +8,7 @@ public class ProductInquiryDTO {
     private String productName;
     private String channel;
     private String clientEmail;
+    private String eventId;      // event_id del navegador para deduplicar el Contact en Meta
     private String utmSource;
     private String utmMedium;
     private String utmCampaign;

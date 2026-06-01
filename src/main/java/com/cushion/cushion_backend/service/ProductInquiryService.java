@@ -34,7 +34,11 @@ public class ProductInquiryService {
 
         // ── Meta CAPI — Contact ──
         try {
-            String eventId = "contact_" + saved.getId() + "_" + UUID.randomUUID().toString().substring(0, 8);
+            // Usa el event_id que envía el navegador (para deduplicar contra el Pixel).
+            // Si no viene, genera uno propio como respaldo.
+            String eventId = (dto.getEventId() != null && !dto.getEventId().isBlank())
+                    ? dto.getEventId()
+                    : "contact_" + saved.getId() + "_" + UUID.randomUUID().toString().substring(0, 8);
             metaConversions.sendContact(eventId, saved.getProductSlug(), saved.getClientEmail(), clientIp, userAgent);
         } catch (Exception e) {
             System.err.println("[Meta CAPI] Contact error: " + e.getMessage());
