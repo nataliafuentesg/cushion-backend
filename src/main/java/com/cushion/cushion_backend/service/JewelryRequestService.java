@@ -37,7 +37,11 @@ public class JewelryRequestService {
 
         // ── Meta CAPI — Lead ──
         try {
-            String eventId = "lead_" + saved.getId() + "_" + UUID.randomUUID().toString().substring(0, 8);
+            // Usa el event_id que envía el navegador (para deduplicar contra el Pixel).
+            // Si no viene, genera uno propio como respaldo.
+            String eventId = (dto.getEventId() != null && !dto.getEventId().isBlank())
+                    ? dto.getEventId()
+                    : "lead_" + saved.getId() + "_" + UUID.randomUUID().toString().substring(0, 8);
             metaConversions.sendLead(eventId, saved.getCustomerEmail(), clientIp, userAgent);
         } catch (Exception e) {
             System.err.println("[Meta CAPI] Lead error: " + e.getMessage());

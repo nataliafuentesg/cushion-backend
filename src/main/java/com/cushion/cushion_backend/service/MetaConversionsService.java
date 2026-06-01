@@ -28,6 +28,12 @@ public class MetaConversionsService {
     @Value("${app.base.url:https://cushionjewelry.com}")
     private String baseUrl;
 
+    // Código de prueba de Meta — SOLO para testing en "Probar eventos".
+    // Déjalo vacío en producción. Cuando lo pongas (ej. TEST25072), los eventos
+    // del servidor aparecen en el panel "Probar eventos" de Events Manager.
+    @Value("${meta.test.event.code:}")
+    private String testEventCode;
+
     private final HttpClient httpClient = HttpClient.newHttpClient();
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -75,7 +81,14 @@ public class MetaConversionsService {
             event.put("user_data", userData);
             if (!customData.isEmpty()) event.put("custom_data", customData);
 
-            String body = mapper.writeValueAsString(Map.of("data", List.of(event)));
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("data", List.of(event));
+            // Solo en modo prueba: hace que el evento aparezca en "Probar eventos"
+            if (testEventCode != null && !testEventCode.isBlank()) {
+                payload.put("test_event_code", testEventCode);
+            }
+
+            String body = mapper.writeValueAsString(payload);
             String url  = String.format(CAPI_URL, pixelId, accessToken);
 
             HttpRequest req = HttpRequest.newBuilder()

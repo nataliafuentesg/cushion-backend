@@ -15,4 +15,5 @@ public class JewelryRequestDTO {
     private String ideas;
     // "FORMULARIO" o "WHATSAPP" — para medir cuál canal funciona más
     private String contactMethod;
+    private String eventId;      // event_id del navegador para deduplicar el Lead en Meta
 }
