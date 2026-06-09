@@ -68,7 +68,10 @@ public class OrderService {
 
         double subtotal = 0;
         for (CartItem cartItem : cart.getItems()) {
-            Product product = cartItem.getProduct();
+            // Bloqueamos la fila del producto (FOR UPDATE): si dos clientes intentan
+            // la última unidad al mismo tiempo, el segundo espera y verá stock = 0.
+            Product product = productRepository.findByIdForUpdate(cartItem.getProduct().getId())
+                    .orElseThrow(() -> new RuntimeException("Producto no encontrado: " + cartItem.getProduct().getId()));
             int stock = product.getStock() != null ? product.getStock() : 0;
             if (stock < cartItem.getQuantity()) {
                 throw new RuntimeException("Stock insuficiente para: " + product.getName() +
