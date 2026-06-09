@@ -39,6 +39,10 @@ public class Order {
     // ID de la transacción en Bold (se llena al confirmar el pago vía webhook)
     private String paymentId;
 
+    // Datos de envío — se llenan cuando el admin despacha el pedido
+    private String trackingNumber;   // número de guía
+    private String shippingCarrier;  // transportadora (Servientrega, Coordinadora, etc.)
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "client_id")
     @JsonIgnore

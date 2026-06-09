@@ -58,6 +58,26 @@ public class AdminController {
                 "orderNumber", confirmed.getOrderNumber()));
     }
 
+    /**
+     * Marcar pedido como ENVIADO — guarda guía + transportadora y envía el correo
+     * de envío al cliente.
+     */
+    @PostMapping("/orders/{id}/ship")
+    public ResponseEntity<?> shipOrder(
+            @PathVariable Long id,
+            @RequestParam String trackingNumber,
+            @RequestParam String carrier) {
+        Order order = orderService.markShipped(id, trackingNumber, carrier);
+        return ResponseEntity.ok(order);
+    }
+
+    /** Marcar pedido como ENTREGADO — envía el correo de agradecimiento. */
+    @PostMapping("/orders/{id}/deliver")
+    public ResponseEntity<?> deliverOrder(@PathVariable Long id) {
+        Order order = orderService.markDelivered(id);
+        return ResponseEntity.ok(order);
+    }
+
     // --- GESTIÓN DE PRODUCTOS (ALTA JOYERÍA) ---
     @PostMapping("/products")
     public Product addProduct(@RequestBody Product product) {

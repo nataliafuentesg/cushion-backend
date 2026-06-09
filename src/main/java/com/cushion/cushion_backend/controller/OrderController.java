@@ -72,4 +72,33 @@ public class OrderController {
                 )))
                 .orElse(ResponseEntity.notFound().build());
     }
+
+    /**
+     * Rastreo público de un pedido — para clientes SIN cuenta.
+     * Requiere el número de orden + el correo o teléfono con que se hizo el pedido.
+     */
+    @GetMapping("/track")
+    public ResponseEntity<?> trackOrder(
+            @RequestParam String orderNumber,
+            @RequestParam String contact) {
+        Order order = orderService.trackOrder(orderNumber.trim(), contact);
+        if (order == null) {
+            return ResponseEntity.status(404).body(Map.of(
+                    "message", "No encontramos un pedido con esos datos. Verifica el número de orden y el correo o teléfono."));
+        }
+        Map<String, Object> result = new java.util.LinkedHashMap<>();
+        result.put("orderNumber", order.getOrderNumber());
+        result.put("status", order.getStatus());
+        result.put("createdAt", order.getCreatedAt());
+        result.put("totalAmount", order.getTotalAmount());
+        result.put("customerName", order.getCustomerName());
+        result.put("trackingNumber", order.getTrackingNumber());
+        result.put("shippingCarrier", order.getShippingCarrier());
+        result.put("items", order.getItems().stream().map(it -> Map.of(
+                "name", it.getProduct() != null ? it.getProduct().getName() : "Pieza",
+                "quantity", it.getQuantity(),
+                "price", it.getPriceAtPurchase()
+        )).toList());
+        return ResponseEntity.ok(result);
+    }
 }

@@ -6,6 +6,7 @@ import com.cushion.cushion_backend.repository.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,10 +23,16 @@ public class OrderService {
     @Autowired private ClientRepository clientRepository;
     @Autowired private TelegramService telegramService;
     @Autowired private EmailService emailService;
+    @Autowired private OrderEmailService orderEmailService;
     @Autowired private MetaConversionsService metaConversions;
 
-    private static final double SHIPPING_NACIONAL = 25000.0;
-    private static final double SHIPPING_INTERNACIONAL = 150000.0;
+    // Tarifas de envío configurables desde application.properties (valores
+    // provisionales por defecto mientras se definen los definitivos).
+    @Value("${shipping.fee.nacional:25000}")
+    private double shippingNacional;
+
+    @Value("${shipping.fee.internacional:150000}")
+    private double shippingInternacional;
 
     // ───────────────────────────────────────────────────────────────────────
     // PASO 1 — Crear la orden en estado PENDIENTE_PAGO.
@@ -69,9 +76,9 @@ public class OrderService {
             subtotal += product.getPrice() * cartItem.getQuantity();
         }
 
-        double shippingFee = SHIPPING_NACIONAL;
+        double shippingFee = shippingNacional;
         if (dto.getShippingAddress() != null && !dto.getShippingAddress().toUpperCase().startsWith("[COLOMBIA]")) {
-            shippingFee = SHIPPING_INTERNACIONAL;
+            shippingFee = shippingInternacional;
         }
         order.setTotalAmount(subtotal + shippingFee);
 
@@ -84,6 +91,11 @@ public class OrderService {
 
         Order savedOrder = orderRepository.save(order);
         log.info("[Orden] Creada PENDIENTE_PAGO #{} por ${}", savedOrder.getOrderNumber(), savedOrder.getTotalAmount());
+
+        // Correo 1/4: "Recibimos tu orden, esperamos tu pago" (async)
+        try { orderEmailService.sendOrderCreatedEmail(savedOrder); }
+        catch (Exception e) { log.error("[Email] orden creada error: {}", e.getMessage()); }
+
         return savedOrder;
     }
 
@@ -178,28 +190,9 @@ public class OrderService {
             log.error("Telegram error: {}", e.getMessage());
         }
 
-        // ── Email al cliente ──
-        try {
-            String clienteBody = """
-                <h2 style="color:#B89B6A; font-family:Georgia,serif;">¡Pago confirmado!</h2>
-                <p>Hola <b>%s</b>, recibimos tu pago y confirmamos tu pedido <b>#%s</b>.</p>
-                <p>Estamos preparando tu pieza con el mayor cuidado. Muy pronto coordinaremos el envío
-                a la dirección indicada y te compartiremos el número de guía.</p>
-                <p><b>Total pagado:</b> $%s COP</p>
-                <p style="color:#B89B6A; font-style:italic;">Equipo Cushion — Alta Joyería</p>
-                """.formatted(
-                    order.getCustomerName(),
-                    order.getOrderNumber(),
-                    String.format("%,.0f", order.getTotalAmount())
-            );
-            emailService.sendHtmlEmail(
-                    order.getCustomerEmail(),
-                    "Pago confirmado — Cushion #" + order.getOrderNumber(),
-                    clienteBody
-            );
-        } catch (Exception e) {
-            log.error("Email cliente error: {}", e.getMessage());
-        }
+        // ── Correo 2/4 al cliente: pago confirmado ──
+        try { orderEmailService.sendPaymentConfirmedEmail(order); }
+        catch (Exception e) { log.error("Email pago confirmado error: {}", e.getMessage()); }
 
         // ── Email interno ──
         try {
@@ -229,5 +222,57 @@ public class OrderService {
         } catch (Exception e) {
             log.error("Email interno error: {}", e.getMessage());
         }
+    }
+
+    // ───────────────────────────────────────────────────────────────────────
+    // Marcar como ENVIADO — guarda guía + transportadora y envía el correo 3/4.
+    // ───────────────────────────────────────────────────────────────────────
+    @Transactional
+    public Order markShipped(Long orderId, String trackingNumber, String carrier) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Orden no encontrada"));
+        order.setTrackingNumber(trackingNumber);
+        order.setShippingCarrier(carrier);
+        order.setStatus("ENVIADO");
+        Order saved = orderRepository.save(order);
+
+        try { orderEmailService.sendShippedEmail(saved); }
+        catch (Exception e) { log.error("[Email] envío error: {}", e.getMessage()); }
+
+        log.info("[Orden] {} marcada ENVIADO (guía {}, {})", saved.getOrderNumber(), trackingNumber, carrier);
+        return saved;
+    }
+
+    // ───────────────────────────────────────────────────────────────────────
+    // Marcar como ENTREGADO — envía el correo 4/4 de agradecimiento.
+    // ───────────────────────────────────────────────────────────────────────
+    @Transactional
+    public Order markDelivered(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Orden no encontrada"));
+        order.setStatus("ENTREGADO");
+        Order saved = orderRepository.save(order);
+
+        try { orderEmailService.sendDeliveredEmail(saved); }
+        catch (Exception e) { log.error("[Email] entrega error: {}", e.getMessage()); }
+
+        log.info("[Orden] {} marcada ENTREGADO", saved.getOrderNumber());
+        return saved;
+    }
+
+    // ───────────────────────────────────────────────────────────────────────
+    // Rastreo público — busca por número de orden y valida que el contacto
+    // (correo o teléfono) coincida con el de la orden.
+    // ───────────────────────────────────────────────────────────────────────
+    @Transactional(readOnly = true)
+    public Order trackOrder(String orderNumber, String contact) {
+        Order order = orderRepository.findByOrderNumber(orderNumber).orElse(null);
+        if (order == null || contact == null) return null;
+        String c = contact.trim().toLowerCase();
+        boolean emailMatch = order.getCustomerEmail() != null
+                && order.getCustomerEmail().trim().toLowerCase().equals(c);
+        boolean phoneMatch = order.getPhoneNumber() != null
+                && order.getPhoneNumber().replaceAll("\\s+", "").equals(contact.replaceAll("\\s+", ""));
+        return (emailMatch || phoneMatch) ? order : null;
     }
 }

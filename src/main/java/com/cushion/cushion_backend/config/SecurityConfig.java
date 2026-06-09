@@ -34,9 +34,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/orders/create").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/orders/*/status").permitAll() // estado para la página de resultado
+                        .requestMatchers(HttpMethod.GET, "/api/orders/track").permitAll()    // rastreo público de pedidos
                         .requestMatchers("/", "/index.html", "/assets/**", "/images/**", "/robots.txt", "/favicon.ico").permitAll()
                         .requestMatchers("/api/clients/login", "/api/clients/register", "/api/clients/forgot-password", "/api/clients/reset-password").permitAll()
                         .requestMatchers("/api/products/**", "/api/cart/**", "/api/contact/**", "/api/categories/**", "/error").permitAll()
+                        .requestMatchers("/api/config/**").permitAll()        // Config pública (tarifas de envío)
                         .requestMatchers("/api/feed/**").permitAll()          // Feed público para Google Merchant Center
                         .requestMatchers(HttpMethod.POST, "/api/webhooks/bold").permitAll() // Webhook de Bold (firma propia)
                         .requestMatchers(HttpMethod.POST, "/api/jewelry-requests").permitAll()
