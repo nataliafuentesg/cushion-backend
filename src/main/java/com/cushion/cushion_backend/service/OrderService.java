@@ -8,8 +8,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -33,6 +36,10 @@ public class OrderService {
 
     @Value("${shipping.fee.internacional:150000}")
     private double shippingInternacional;
+
+    // Tiempo que se reserva una pieza mientras el cliente paga (minutos)
+    @Value("${order.reservation.minutes:60}")
+    private int reservationMinutes;
 
     // ───────────────────────────────────────────────────────────────────────
     // PASO 1 — Crear la orden en estado PENDIENTE_PAGO.
@@ -62,11 +69,16 @@ public class OrderService {
         double subtotal = 0;
         for (CartItem cartItem : cart.getItems()) {
             Product product = cartItem.getProduct();
-            // Validamos disponibilidad, pero NO descontamos aún.
-            if (product.getStock() < cartItem.getQuantity()) {
+            int stock = product.getStock() != null ? product.getStock() : 0;
+            if (stock < cartItem.getQuantity()) {
                 throw new RuntimeException("Stock insuficiente para: " + product.getName() +
-                        " (Disponible: " + product.getStock() + ")");
+                        " (Disponible: " + stock + ")");
             }
+            // RESERVAR: descontamos el stock ahora para que nadie más pueda ordenar
+            // esta pieza mientras el cliente paga. Si no paga a tiempo, se libera.
+            product.setStock(stock - cartItem.getQuantity());
+            productRepository.save(product);
+
             OrderItem orderItem = new OrderItem();
             orderItem.setProduct(product);
             orderItem.setQuantity(cartItem.getQuantity());
@@ -75,6 +87,9 @@ public class OrderService {
             order.getItems().add(orderItem);
             subtotal += product.getPrice() * cartItem.getQuantity();
         }
+
+        // La reserva vence en N minutos si no se paga
+        order.setExpiresAt(LocalDateTime.now().plusMinutes(reservationMinutes));
 
         double shippingFee = shippingNacional;
         if (dto.getShippingAddress() != null && !dto.getShippingAddress().toUpperCase().startsWith("[COLOMBIA]")) {
@@ -101,12 +116,15 @@ public class OrderService {
 
     // ───────────────────────────────────────────────────────────────────────
     // PASO 2 — Confirmar el pago (lo llama el webhook de Bold tras SALE_APPROVED).
-    // Aquí SÍ se descuenta el inventario, se marca PAGADO y se vacía el carrito.
-    // Es idempotente: si la orden ya está pagada, no hace nada (protege contra
-    // los reintentos del webhook de Bold).
+    // El inventario YA fue reservado al crear la orden, así que aquí solo se
+    // marca PAGADO y se vacía el carrito. Es idempotente (reintentos de Bold).
     //
-    // Devuelve la orden si se confirmó AHORA (para disparar notificaciones), o
-    // null si no aplica (ya pagada, no encontrada, etc.).
+    // Caso especial: si la orden ya había EXPIRADO (su reserva se liberó), se
+    // intenta re-reservar; si la pieza ya no está, se marca PAGO_SIN_STOCK y se
+    // alerta al equipo para gestionar el reembolso.
+    //
+    // Devuelve la orden si se confirmó AHORA (para notificaciones), o null si no
+    // aplica (ya pagada, no encontrada, o pago sin stock).
     // ───────────────────────────────────────────────────────────────────────
     @Transactional
     public Order confirmPayment(String orderNumber, String paymentId) {
@@ -121,13 +139,32 @@ public class OrderService {
             return null;
         }
 
-        // Descontar inventario ahora (revalidando por seguridad).
-        for (OrderItem item : order.getItems()) {
-            Product product = item.getProduct();
-            int restante = (product.getStock() != null ? product.getStock() : 0) - item.getQuantity();
-            product.setStock(Math.max(restante, 0));
-            productRepository.save(product);
+        // Si la reserva había expirado, intentamos recuperar el stock.
+        if ("EXPIRADO".equals(order.getStatus())) {
+            boolean disponible = order.getItems().stream().allMatch(it ->
+                    it.getProduct().getStock() != null && it.getProduct().getStock() >= it.getQuantity());
+            if (disponible) {
+                for (OrderItem item : order.getItems()) {
+                    Product p = item.getProduct();
+                    p.setStock(p.getStock() - item.getQuantity());
+                    productRepository.save(p);
+                }
+                log.info("[Pago] Orden {} expirada pero re-reservada (pago tardío con stock disponible).", orderNumber);
+            } else {
+                // Pago llegó tarde y la pieza ya no está → requiere gestión manual.
+                order.setStatus("PAGO_SIN_STOCK");
+                order.setPaymentId(paymentId);
+                orderRepository.save(order);
+                try {
+                    telegramService.sendNotification("⚠️ <b>PAGO SIN STOCK</b>\n\n" +
+                            "Orden <b>" + orderNumber + "</b> se pagó pero su reserva ya había expirado y la pieza " +
+                            "no está disponible.\n\n<b>Requiere reembolso o gestión manual.</b>");
+                } catch (Exception ignored) {}
+                log.warn("[Pago] ⚠️ Orden {} pagada SIN STOCK (reserva expirada). Requiere reembolso.", orderNumber);
+                return null;
+            }
         }
+        // Para PENDIENTE_PAGO el stock ya está reservado desde la creación → no se toca.
 
         order.setStatus("PAGADO");
         order.setPaymentId(paymentId);
@@ -143,6 +180,30 @@ public class OrderService {
 
         log.info("[Pago] ✅ Orden {} CONFIRMADA y pagada (paymentId={})", orderNumber, paymentId);
         return order;
+    }
+
+    // ───────────────────────────────────────────────────────────────────────
+    // Tarea programada: libera el stock de las órdenes cuya reserva venció sin
+    // pagarse. Corre cada 5 minutos. Restaura el inventario y marca EXPIRADO.
+    // ───────────────────────────────────────────────────────────────────────
+    @Scheduled(fixedRate = 300000) // cada 5 minutos
+    @Transactional
+    public void releaseExpiredOrders() {
+        List<Order> expiradas = orderRepository.findByStatusAndExpiresAtBefore("PENDIENTE_PAGO", LocalDateTime.now());
+        if (expiradas.isEmpty()) return;
+
+        for (Order order : expiradas) {
+            for (OrderItem item : order.getItems()) {
+                Product p = item.getProduct();
+                int stock = p.getStock() != null ? p.getStock() : 0;
+                p.setStock(stock + item.getQuantity()); // devolver al inventario
+                productRepository.save(p);
+            }
+            order.setStatus("EXPIRADO");
+            orderRepository.save(order);
+            log.info("[Orden] {} EXPIRADA — reserva liberada al inventario.", order.getOrderNumber());
+        }
+        log.info("[Órdenes] {} reservas vencidas liberadas.", expiradas.size());
     }
 
     // ───────────────────────────────────────────────────────────────────────

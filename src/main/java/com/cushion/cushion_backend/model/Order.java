@@ -43,6 +43,9 @@ public class Order {
     private String trackingNumber;   // número de guía
     private String shippingCarrier;  // transportadora (Servientrega, Coordinadora, etc.)
 
+    // Vencimiento de la reserva — si no se paga antes de esta hora, el stock se libera
+    private LocalDateTime expiresAt;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "client_id")
     @JsonIgnore

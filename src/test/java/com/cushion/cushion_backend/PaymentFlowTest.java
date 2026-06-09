@@ -63,14 +63,16 @@ class PaymentFlowTest {
         dto.setPhoneNumber("3001234567");
         dto.setShippingAddress("[COLOMBIA] - Calle 123, Bogotá");
 
-        // ── PASO 1: crear la orden ──
+        // ── PASO 1: crear la orden — RESERVA el stock de inmediato ──
         Order pendiente = orderService.createPendingOrder(dto, "session-test-123");
 
         assertThat(pendiente.getStatus()).isEqualTo("PENDIENTE_PAGO");
         // El total = subtotal (2 x 2.000.000) + envío nacional (25.000) = 4.025.000
         assertThat(pendiente.getTotalAmount()).isEqualTo(4_025_000.0);
-        // 🔑 El inventario NO se ha tocado todavía
-        assertThat(productRepository.findById(anillo.getId()).get().getStock()).isEqualTo(5);
+        // 🔑 El stock se reserva al crear: 5 - 2 = 3 (nadie más puede ordenarlo)
+        assertThat(productRepository.findById(anillo.getId()).get().getStock()).isEqualTo(3);
+        // 🔑 Tiene fecha de expiración de la reserva
+        assertThat(pendiente.getExpiresAt()).isNotNull();
 
         // ── PASO 2: llega el webhook de Bold confirmando el pago ──
         Order pagada = orderService.confirmPayment(pendiente.getOrderNumber(), "BOLD-TX-ABC123");
@@ -78,7 +80,7 @@ class PaymentFlowTest {
         assertThat(pagada).isNotNull();
         assertThat(pagada.getStatus()).isEqualTo("PAGADO");
         assertThat(pagada.getPaymentId()).isEqualTo("BOLD-TX-ABC123");
-        // 🔑 Ahora SÍ se descontó el inventario: 5 - 2 = 3
+        // 🔑 El stock sigue en 3 (NO se descuenta de nuevo, ya estaba reservado)
         assertThat(productRepository.findById(anillo.getId()).get().getStock()).isEqualTo(3);
         // 🔑 El carrito quedó vacío
         assertThat(cartRepository.findBySessionId("session-test-123").get().getItems()).isEmpty();
@@ -93,7 +95,53 @@ class PaymentFlowTest {
         System.out.println("\n✅ FLUJO COMPLETO OK:");
         System.out.println("   Orden " + pagada.getOrderNumber() + " → " + pagada.getStatus());
         System.out.println("   Total cobrado: $" + String.format("%,.0f", pagada.getTotalAmount()) + " COP");
-        System.out.println("   Stock: 5 → 3 (descontado solo al pagar)");
+        System.out.println("   Stock: 5 → 3 (reservado al crear, confirmado al pagar)");
         System.out.println("   Idempotencia: reintento de webhook ignorado\n");
+    }
+
+    @Test
+    void reservaExpira_yLiberaElStockDeVuelta() {
+        // Producto único (stock 1) — el caso crítico de Cushion
+        Product anilloUnico = new Product();
+        anilloUnico.setName("Anillo Único Esmeralda");
+        anilloUnico.setSlug("anillo-unico-esmeralda");
+        anilloUnico.setPrice(5_000_000.0);
+        anilloUnico.setCategory("Anillos");
+        anilloUnico.setStock(1);
+        anilloUnico = productRepository.save(anilloUnico);
+
+        Cart cart = new Cart();
+        cart.setSessionId("session-exp");
+        CartItem item = new CartItem();
+        item.setProduct(anilloUnico);
+        item.setQuantity(1);
+        item.setCart(cart);
+        cart.getItems().add(item);
+        cartRepository.save(cart);
+
+        OrderRequestDTO dto = new OrderRequestDTO();
+        dto.setCustomerName("Cliente Lento");
+        dto.setCustomerEmail("lento@cushion.com");
+        dto.setShippingAddress("[COLOMBIA] - Bogotá");
+
+        // Crear la orden → reserva la pieza única (stock 1 → 0)
+        Order orden = orderService.createPendingOrder(dto, "session-exp");
+        assertThat(productRepository.findById(anilloUnico.getId()).get().getStock()).isEqualTo(0);
+
+        // Simular que la reserva ya venció (forzamos expiresAt al pasado)
+        orden.setExpiresAt(java.time.LocalDateTime.now().minusMinutes(5));
+        orderRepository.save(orden);
+
+        // Corre la tarea de liberación
+        orderService.releaseExpiredOrders();
+
+        // 🔑 El stock volvió a 1 y la orden quedó EXPIRADA → otra persona ya puede comprarla
+        assertThat(productRepository.findById(anilloUnico.getId()).get().getStock()).isEqualTo(1);
+        assertThat(orderRepository.findByOrderNumber(orden.getOrderNumber()).get().getStatus()).isEqualTo("EXPIRADO");
+
+        System.out.println("\n✅ EXPIRACIÓN OK:");
+        System.out.println("   Pieza única reservada (stock 1 → 0) al crear la orden");
+        System.out.println("   Sin pago en 1h → liberada (stock 0 → 1), orden EXPIRADA");
+        System.out.println("   La pieza queda disponible para otro cliente\n");
     }
 }
