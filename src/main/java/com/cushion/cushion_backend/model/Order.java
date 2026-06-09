@@ -33,6 +33,12 @@ public class Order {
     private String phoneNumber;
     private String notes;
 
+    // Sesión del carrito — para vaciarlo solo cuando el pago se confirme
+    private String sessionId;
+
+    // ID de la transacción en Bold (se llena al confirmar el pago vía webhook)
+    private String paymentId;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "client_id")
     @JsonIgnore

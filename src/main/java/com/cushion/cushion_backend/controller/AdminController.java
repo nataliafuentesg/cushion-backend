@@ -8,6 +8,7 @@ import com.cushion.cushion_backend.repository.OrderRepository;
 import com.cushion.cushion_backend.repository.ProductRepository;
 import com.cushion.cushion_backend.repository.ReviewRepository;
 import com.cushion.cushion_backend.service.GoogleMerchantService;
+import com.cushion.cushion_backend.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +26,7 @@ public class AdminController {
     @Autowired private ProductRepository productRepository;
     @Autowired private ReviewRepository reviewRepository; // Asume que tienes este repositorio creado
     @Autowired private GoogleMerchantService googleMerchantService;
+    @Autowired private OrderService orderService;
 
     @GetMapping("/orders")
     public List<Order> getAllOrders() {
@@ -36,6 +38,24 @@ public class AdminController {
         Order order = orderRepository.findById(id).orElseThrow();
         order.setStatus(status);
         return ResponseEntity.ok(orderRepository.save(order));
+    }
+
+    /**
+     * Confirmar pago manualmente — para órdenes internacionales coordinadas por
+     * correo (que no pasan por el webhook de Bold). Descuenta inventario, marca
+     * PAGADO y dispara las notificaciones, igual que un pago automático.
+     */
+    @PostMapping("/orders/{orderNumber}/confirm-payment")
+    public ResponseEntity<?> confirmPaymentManually(@PathVariable String orderNumber) {
+        Order confirmed = orderService.confirmPayment(orderNumber, "MANUAL_ADMIN");
+        if (confirmed == null) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "message", "La orden no existe o ya estaba pagada."));
+        }
+        orderService.sendPaidOrderNotifications(confirmed);
+        return ResponseEntity.ok(Map.of(
+                "message", "Pago confirmado y notificaciones enviadas.",
+                "orderNumber", confirmed.getOrderNumber()));
     }
 
     // --- GESTIÓN DE PRODUCTOS (ALTA JOYERÍA) ---

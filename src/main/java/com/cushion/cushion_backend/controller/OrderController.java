@@ -4,8 +4,8 @@ import com.cushion.cushion_backend.dto.OrderRequestDTO;
 import com.cushion.cushion_backend.dto.OrderResponseDTO;
 import com.cushion.cushion_backend.model.Order;
 import com.cushion.cushion_backend.repository.OrderRepository;
+import com.cushion.cushion_backend.service.BoldService;
 import com.cushion.cushion_backend.service.OrderService;
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,23 +19,32 @@ public class OrderController {
 
     @Autowired private OrderService orderService;
     @Autowired private OrderRepository orderRepository;
+    @Autowired private BoldService boldService;
 
     @PostMapping("/create")
     public ResponseEntity<?> createOrder(
             @RequestBody OrderRequestDTO orderDto,
-            @RequestParam String sessionId,
-            HttpServletRequest request) {
+            @RequestParam String sessionId) {
         try {
-            String ip = extractIp(request);
-            String ua = request.getHeader("User-Agent");
+            // Crea la orden PENDIENTE_PAGO (no descuenta inventario aún)
+            Order savedOrder = orderService.createPendingOrder(orderDto, sessionId);
 
-            Order savedOrder = orderService.createOrderFromCart(orderDto, sessionId, ip, ua);
+            // Monto entero en COP (Bold no acepta decimales)
+            long boldAmount = Math.round(savedOrder.getTotalAmount());
+            String currency = "COP";
+            String signature = boldService.generateIntegritySignature(
+                    savedOrder.getOrderNumber(), boldAmount, currency);
 
             OrderResponseDTO response = new OrderResponseDTO();
             response.setOrderNumber(savedOrder.getOrderNumber());
             response.setStatus(savedOrder.getStatus());
             response.setTotalAmount(savedOrder.getTotalAmount());
             response.setCustomerEmail(savedOrder.getCustomerEmail());
+            // Datos para que el frontend arme el botón de Bold
+            response.setBoldAmount(boldAmount);
+            response.setBoldCurrency(currency);
+            response.setBoldApiKey(boldService.getApiKey());
+            response.setBoldIntegritySignature(signature);
 
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
@@ -48,10 +57,19 @@ public class OrderController {
         return ResponseEntity.ok(orderRepository.findByClient_Id(clientId));
     }
 
-    private String extractIp(HttpServletRequest request) {
-        String ip = request.getHeader("X-Forwarded-For");
-        if (ip == null || ip.isBlank()) ip = request.getHeader("X-Real-IP");
-        if (ip == null || ip.isBlank()) ip = request.getRemoteAddr();
-        return ip != null ? ip.split(",")[0].trim() : null;
+    /**
+     * Estado de una orden — usado por la página de resultado de pago para saber
+     * si Bold ya confirmó el pago (vía webhook) y mostrar el mensaje correcto.
+     * Público: solo devuelve estado/monto, sin datos sensibles.
+     */
+    @GetMapping("/{orderNumber}/status")
+    public ResponseEntity<?> getOrderStatus(@PathVariable String orderNumber) {
+        return orderRepository.findByOrderNumber(orderNumber)
+                .<ResponseEntity<?>>map(order -> ResponseEntity.ok(Map.of(
+                        "orderNumber", order.getOrderNumber(),
+                        "status", order.getStatus(),
+                        "totalAmount", order.getTotalAmount()
+                )))
+                .orElse(ResponseEntity.notFound().build());
     }
 }
