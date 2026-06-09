@@ -10,10 +10,13 @@ import com.cushion.cushion_backend.repository.ReviewRepository;
 import com.cushion.cushion_backend.service.GoogleMerchantService;
 import com.cushion.cushion_backend.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.charset.StandardCharsets;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -76,6 +79,55 @@ public class AdminController {
     public ResponseEntity<?> deliverOrder(@PathVariable Long id) {
         Order order = orderService.markDelivered(id);
         return ResponseEntity.ok(order);
+    }
+
+    /**
+     * Exporta TODAS las ventas a un archivo CSV (se abre en Excel/Google Sheets).
+     * Incluye el ID de transacción de Bold para control de ventas y comisiones.
+     */
+    @GetMapping(value = "/orders/export", produces = "text/csv; charset=UTF-8")
+    public ResponseEntity<byte[]> exportOrders() {
+        List<Order> orders = orderRepository.findAll();
+        orders.sort((a, b) -> {
+            if (a.getCreatedAt() == null || b.getCreatedAt() == null) return 0;
+            return b.getCreatedAt().compareTo(a.getCreatedAt()); // más recientes primero
+        });
+
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+        StringBuilder sb = new StringBuilder();
+        sb.append('﻿'); // BOM — para que Excel reconozca los acentos (UTF-8)
+        sb.append("Numero de Orden,Fecha,Estado,Cliente,Email,Telefono,Total (COP),")
+          .append("ID Transaccion Bold,Transportadora,Guia,Direccion\n");
+
+        for (Order o : orders) {
+            sb.append(csv(o.getOrderNumber())).append(',')
+              .append(o.getCreatedAt() != null ? o.getCreatedAt().format(fmt) : "").append(',')
+              .append(csv(o.getStatus())).append(',')
+              .append(csv(o.getCustomerName())).append(',')
+              .append(csv(o.getCustomerEmail())).append(',')
+              .append(csv(o.getPhoneNumber())).append(',')
+              .append(o.getTotalAmount() != null ? String.format("%.0f", o.getTotalAmount()) : "0").append(',')
+              .append(csv(o.getPaymentId())).append(',')
+              .append(csv(o.getShippingCarrier())).append(',')
+              .append(csv(o.getTrackingNumber())).append(',')
+              .append(csv(o.getShippingAddress())).append('\n');
+        }
+
+        byte[] bytes = sb.toString().getBytes(StandardCharsets.UTF_8);
+        String filename = "cushion-ventas-" + java.time.LocalDate.now() + ".csv";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .header(HttpHeaders.CONTENT_TYPE, "text/csv; charset=UTF-8")
+                .body(bytes);
+    }
+
+    /** Escapa un valor para CSV (comillas si tiene comas, comillas o saltos). */
+    private String csv(String s) {
+        if (s == null) return "";
+        if (s.contains(",") || s.contains("\"") || s.contains("\n")) {
+            return "\"" + s.replace("\"", "\"\"") + "\"";
+        }
+        return s;
     }
 
     // --- GESTIÓN DE PRODUCTOS (ALTA JOYERÍA) ---
