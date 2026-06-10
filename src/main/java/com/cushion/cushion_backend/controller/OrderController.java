@@ -99,6 +99,19 @@ public class OrderController {
                 "quantity", it.getQuantity(),
                 "price", it.getPriceAtPurchase()
         )).toList());
+
+        // Si la orden sigue pendiente de pago, devolvemos los datos del botón de
+        // Bold para que el cliente pueda COMPLETAR EL PAGO desde el rastreo.
+        if ("PENDIENTE_PAGO".equals(order.getStatus())) {
+            long boldAmount = Math.round(order.getTotalAmount());
+            result.put("boldAmount", boldAmount);
+            result.put("boldCurrency", "COP");
+            result.put("boldApiKey", boldService.getApiKey());
+            result.put("boldIntegritySignature",
+                    boldService.generateIntegritySignature(order.getOrderNumber(), boldAmount, "COP"));
+            result.put("customerEmail", order.getCustomerEmail());
+            result.put("phoneNumber", order.getPhoneNumber());
+        }
         return ResponseEntity.ok(result);
     }
 }
