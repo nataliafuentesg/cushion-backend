@@ -41,6 +41,10 @@ public class OrderService {
     @Value("${order.reservation.minutes:60}")
     private int reservationMinutes;
 
+    // Correo interno que recibe las notificaciones (nueva venta, etc.)
+    @Value("${notifications.admin.email:nata.ltda1412@gmail.com}")
+    private String adminEmail;
+
     // ───────────────────────────────────────────────────────────────────────
     // PASO 1 — Crear la orden en estado PENDIENTE_PAGO.
     // Valida que haya stock disponible pero NO lo descuenta todavía.
@@ -279,7 +283,7 @@ public class OrderService {
                     String.format("%,.0f", order.getTotalAmount())
             );
             emailService.sendHtmlEmail(
-                    "nata.ltda1412@gmail.com",
+                    adminEmail,
                     "✅ VENTA PAGADA — Orden #" + order.getOrderNumber(),
                     internoBody
             );

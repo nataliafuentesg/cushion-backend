@@ -4,6 +4,7 @@ import com.cushion.cushion_backend.model.ContactMessage;
 import com.cushion.cushion_backend.repository.ContactMessageRepository;
 import com.cushion.cushion_backend.service.EmailService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,6 +17,9 @@ public class ContactController {
     @Autowired
     private ContactMessageRepository contactRepository;
     @Autowired private EmailService emailService;
+
+    @Value("${notifications.admin.email:nata.ltda1412@gmail.com}")
+    private String adminEmail;
 
     @PostMapping
     public ResponseEntity<ContactMessage> submitContactForm(@RequestBody ContactMessage message) {
@@ -31,7 +35,7 @@ public class ContactController {
         </div>
         """.formatted(message.getName(), message.getEmail(), message.getMessage());
 
-        emailService.sendHtmlEmail("admin@cushion.com", "📩 Nuevo Contacto: " + message.getName(), body);
+        emailService.sendHtmlEmail(adminEmail, "📩 Nuevo Contacto: " + message.getName(), body);
 
         return ResponseEntity.ok(savedMessage);
     }

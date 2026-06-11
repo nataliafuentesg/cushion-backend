@@ -19,6 +19,9 @@ public class JewelryRequestService {
     @Autowired private TelegramService telegramService;
     @Autowired private MetaConversionsService metaConversions;
 
+    @org.springframework.beans.factory.annotation.Value("${notifications.admin.email:nata.ltda1412@gmail.com}")
+    private String adminEmail;
+
     @Transactional
     public JewelryRequest createRequest(JewelryRequestDTO dto, String clientIp, String userAgent) {
         JewelryRequest request = new JewelryRequest();
@@ -120,7 +123,7 @@ public class JewelryRequestService {
                     saved.getBudgetRange(),
                     saved.getIdeas() != null ? saved.getIdeas() : "Sin descripción adicional"
                 );
-            emailService.sendHtmlEmail("nata.ltda1412@gmail.com",
+            emailService.sendHtmlEmail(adminEmail,
                     "💎 Nueva consulta esmeralda — " + saved.getContactMethod(), adminBody);
         } catch (Exception e) {
             System.err.println("Email admin error: " + e.getMessage());
