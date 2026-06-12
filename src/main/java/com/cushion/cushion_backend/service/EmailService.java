@@ -18,7 +18,7 @@ public class EmailService {
     @Value("${spring.mail.username}")
     private String senderEmail;
 
-    private final String LOGO_URL = "https://raw.githubusercontent.com/nataliafuentesg/cushion-frontend/main/src/assets/images/logo-cushion-black.png";
+    private final String LOGO_URL = "https://res.cloudinary.com/dfmvlqtfb/image/upload/v1781226801/logo-cushion-black_ryyyje.png";
 
     @Async
     public void sendHtmlEmail(String to, String subject, String bodyContent) {
