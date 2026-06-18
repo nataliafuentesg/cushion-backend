@@ -28,8 +28,8 @@ public class DailyReportTask {
                 .filter(o -> "PENDIENTE_PAGO".equals(o.getStatus()) || "PAGADO".equals(o.getStatus()))
                 .collect(Collectors.toList());
 
+        // Si no hay nada pendiente, NO enviamos mensaje (para no llenar el chat).
         if (pendientes.isEmpty()) {
-            telegramService.sendNotification("🌅 <b>REPORTE DIARIO CUSHION</b> 🌅\n\nNo hay pedidos pendientes de despacho hoy. ¡Vamos a vender! 💎");
             return;
         }
 
