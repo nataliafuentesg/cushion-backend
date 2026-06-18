@@ -19,8 +19,9 @@ public class DailyReportTask {
     @Autowired
     private TelegramService telegramService;
 
-    // Se ejecuta todos los días a las 8:00 AM hora del servidor (Cron expression)
-    @Scheduled(cron = "0 0 8 * * ?")
+    // Se ejecuta todos los días a las 8:00 AM HORA DE COLOMBIA.
+    // (El servidor corre en UTC; la zona horaria evita que llegue a las 3 a.m.)
+    @Scheduled(cron = "0 0 8 * * ?", zone = "America/Bogota")
     public void sendDailyReport() {
         // Filtramos solo los pedidos que importan para despachar
         List<Order> pendientes = orderRepository.findAll().stream()
