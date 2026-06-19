@@ -46,6 +46,12 @@ public class Order {
     // Vencimiento de la reserva — si no se paga antes de esta hora, el stock se libera
     private LocalDateTime expiresAt;
 
+    // Atribución de campaña — de qué anuncio/campaña vino esta venta
+    private String utmSource;
+    private String utmMedium;
+    private String utmCampaign;
+    private String utmContent;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "client_id")
     @JsonIgnore

@@ -97,7 +97,8 @@ public class AdminController {
         StringBuilder sb = new StringBuilder();
         sb.append('﻿'); // BOM — para que Excel reconozca los acentos (UTF-8)
         sb.append("Numero de Orden,Fecha,Estado,Cliente,Email,Telefono,Total (COP),")
-          .append("ID Transaccion Bold,Transportadora,Guia,Direccion\n");
+          .append("ID Transaccion Bold,Transportadora,Guia,Direccion,")
+          .append("Fuente,Campana,Anuncio\n");
 
         for (Order o : orders) {
             sb.append(csv(o.getOrderNumber())).append(',')
@@ -110,7 +111,10 @@ public class AdminController {
               .append(csv(o.getPaymentId())).append(',')
               .append(csv(o.getShippingCarrier())).append(',')
               .append(csv(o.getTrackingNumber())).append(',')
-              .append(csv(o.getShippingAddress())).append('\n');
+              .append(csv(o.getShippingAddress())).append(',')
+              .append(csv(o.getUtmSource())).append(',')
+              .append(csv(o.getUtmCampaign())).append(',')
+              .append(csv(o.getUtmContent())).append('\n');
         }
 
         byte[] bytes = sb.toString().getBytes(StandardCharsets.UTF_8);

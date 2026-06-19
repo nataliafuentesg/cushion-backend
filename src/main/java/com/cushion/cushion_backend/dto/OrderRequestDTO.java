@@ -10,4 +10,10 @@ public class OrderRequestDTO {
     private String phoneNumber;
     private String notes;
     private Long clientId;
+
+    // Atribución de campaña (de qué anuncio vino la venta)
+    private String utmSource;
+    private String utmMedium;
+    private String utmCampaign;
+    private String utmContent;
 }

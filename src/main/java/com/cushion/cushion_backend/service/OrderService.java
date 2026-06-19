@@ -69,6 +69,11 @@ public class OrderService {
         order.setNotes(dto.getNotes());
         order.setSessionId(sessionId);
         order.setStatus("PENDIENTE_PAGO");
+        // Atribución de campaña
+        order.setUtmSource(dto.getUtmSource());
+        order.setUtmMedium(dto.getUtmMedium());
+        order.setUtmCampaign(dto.getUtmCampaign());
+        order.setUtmContent(dto.getUtmContent());
 
         double subtotal = 0;
         for (CartItem cartItem : cart.getItems()) {
