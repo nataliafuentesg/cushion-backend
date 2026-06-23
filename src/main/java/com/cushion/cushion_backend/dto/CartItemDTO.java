@@ -10,4 +10,5 @@ public class CartItemDTO {
     private Double price;
     private String imageUrl;
     private Integer stock;
+    private String selectedSize; // talla elegida (anillo/collar/pulsera)
 }

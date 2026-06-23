@@ -95,6 +95,7 @@ public class OrderService {
             orderItem.setProduct(product);
             orderItem.setQuantity(cartItem.getQuantity());
             orderItem.setPriceAtPurchase(product.getPrice());
+            orderItem.setSelectedSize(cartItem.getSelectedSize()); // talla elegida
             orderItem.setOrder(order);
             order.getItems().add(orderItem);
             subtotal += product.getPrice() * cartItem.getQuantity();
@@ -253,10 +254,20 @@ public class OrderService {
 
         // ── Telegram ──
         try {
+            StringBuilder piezas = new StringBuilder();
+            for (OrderItem it : order.getItems()) {
+                String nombre = it.getProduct() != null ? it.getProduct().getName() : "Pieza";
+                piezas.append("• ").append(nombre);
+                if (it.getSelectedSize() != null && !it.getSelectedSize().isBlank()) {
+                    piezas.append(" — <b>Talla: ").append(it.getSelectedSize()).append("</b>");
+                }
+                piezas.append("\n");
+            }
             String msg = "🚨 <b>¡NUEVA VENTA CUSHION — PAGO CONFIRMADO!</b> 🚨\n\n" +
                     "<b>Pedido:</b> #" + order.getOrderNumber() + "\n" +
                     "<b>Cliente:</b> " + order.getCustomerName() + "\n" +
                     "<b>Valor:</b> $" + String.format("%,.0f", order.getTotalAmount()) + "\n\n" +
+                    "<b>Piezas:</b>\n" + piezas + "\n" +
                     "Revisa el panel de administración para coordinar el envío.";
             telegramService.sendNotification(msg);
         } catch (Exception e) {

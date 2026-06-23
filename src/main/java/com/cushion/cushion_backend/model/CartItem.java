@@ -20,4 +20,7 @@ public class CartItem {
     private Cart cart;
 
     private Integer quantity;
+
+    // Talla elegida por el cliente (anillo, largo de collar, pulsera). Puede ser null.
+    private String selectedSize;
 }

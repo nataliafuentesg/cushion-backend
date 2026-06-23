@@ -94,11 +94,14 @@ public class OrderController {
         result.put("customerName", order.getCustomerName());
         result.put("trackingNumber", order.getTrackingNumber());
         result.put("shippingCarrier", order.getShippingCarrier());
-        result.put("items", order.getItems().stream().map(it -> Map.of(
-                "name", it.getProduct() != null ? it.getProduct().getName() : "Pieza",
-                "quantity", it.getQuantity(),
-                "price", it.getPriceAtPurchase()
-        )).toList());
+        result.put("items", order.getItems().stream().map(it -> {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("name", it.getProduct() != null ? it.getProduct().getName() : "Pieza");
+            m.put("quantity", it.getQuantity());
+            m.put("price", it.getPriceAtPurchase());
+            m.put("size", it.getSelectedSize()); // puede ser null
+            return m;
+        }).toList());
 
         // Si la orden sigue pendiente de pago, devolvemos los datos del botón de
         // Bold para que el cliente pueda COMPLETAR EL PAGO desde el rastreo.

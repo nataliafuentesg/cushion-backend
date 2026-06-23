@@ -27,4 +27,7 @@ public class OrderItem {
 
     private Integer quantity;
     private Double priceAtPurchase;
+
+    // Talla elegida por el cliente al comprar (anillo, largo, pulsera)
+    private String selectedSize;
 }

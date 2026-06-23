@@ -89,11 +89,16 @@ public class CartService {
         else {
             if (existingItem.isPresent()) {
                 existingItem.get().setQuantity(newTotalQty);
+                // Si llega una talla, la actualizamos
+                if (itemDTO.getSelectedSize() != null && !itemDTO.getSelectedSize().isBlank()) {
+                    existingItem.get().setSelectedSize(itemDTO.getSelectedSize());
+                }
             } else {
                 CartItem newItem = new CartItem();
                 newItem.setProduct(product);
                 newItem.setQuantity(newTotalQty);
                 newItem.setCart(cart);
+                newItem.setSelectedSize(itemDTO.getSelectedSize());
                 cart.getItems().add(newItem);
             }
         }
@@ -116,6 +121,7 @@ public class CartService {
             iDto.setQuantity(item.getQuantity());
             iDto.setPrice(item.getProduct().getPrice());
             iDto.setStock(item.getProduct().getStock());
+            iDto.setSelectedSize(item.getSelectedSize());
 
             if (!item.getProduct().getImages().isEmpty()) {
                 iDto.setImageUrl(item.getProduct().getImages().get(0).getImageUrl());
